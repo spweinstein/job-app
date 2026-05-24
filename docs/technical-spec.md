@@ -1115,7 +1115,7 @@ Server Actions do not return HTTP status codes; they return `ActionResult<T>` ob
 
 **Content schema version 1** (stored in `content_version = 1`):
 
-Each resume is a flat array of typed sections. Section types are a closed set. The UI renders sections in ascending `order` and allows users to add, remove, and reorder them. See `docs/agent-guide.md#section-types` for the closed set of valid `SectionType` values.
+Each resume is a flat array of typed sections. Section types are a closed set. The UI renders sections in ascending `order` and allows users to add, remove, and reorder them. See `docs/agent-guide.md#resume-section-types` for the closed set of valid `SectionType` values.
 
 ```typescript
 // Lives in src/types/index.ts
@@ -1602,7 +1602,5 @@ Variables are never committed. `.env.example` contains all names with placeholde
 ## Open Questions
 
 1. **Account deletion cascade**: If the user deletes their account (`auth.users` row deleted), the cascade behavior via `ON DELETE CASCADE` on all `user_id` FKs will hard-delete all their data. Is a soft-delete / 30-day grace period required before permanent deletion?
-2. **Dashboard metrics**: No chart or aggregation query is specified. Confirm whether the dashboard should show a Kanban-style view grouped by application status or a simple recent-activity feed.
-3. **Resume content editor UI**: The content model is structured JSON with typed sections. The editor UI is not specified — confirm whether sections are edited as individual form fields (recommended, maps cleanly to the schema) or via a rich-text per-section field.
-4. **Task due-soon cron frequency**: Cron runs every 15 minutes for `task_due_soon` events. If a user expects near-real-time notifications, this may feel slow. Confirm acceptable latency.
-5. **Upstash Redis dependency**: Rate limiting requires Upstash Redis as an external paid dependency. Confirm this is acceptable or whether a simpler in-memory / Vercel KV approach is preferred.
+2. **Task due-soon cron frequency**: Cron runs every 15 minutes for `task_due_soon` events. If a user expects near-real-time notifications, this may feel slow. Confirm acceptable latency.
+3. **Upstash Redis dependency**: Rate limiting requires Upstash Redis as an external paid dependency. Confirm this is acceptable or whether a simpler in-memory / Vercel KV approach is preferred.

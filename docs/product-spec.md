@@ -289,6 +289,14 @@ Feature: Dashboard Funnel Chart
     Given the dashboard funnel chart is visible
     When I click the "offer" bar
     Then I am navigated to /applications?status=offer
+
+  Scenario: Funnel chart replaced by CTA card when user has no applications
+    Given I have no applications
+    When I navigate to /dashboard
+    Then I do not see the funnel chart
+    And I see a wide card with a distinct background color and rounded corners
+    And the card contains a prompt to log my first application
+    And clicking the card navigates to /applications/new
 ```
 
 ---
@@ -793,6 +801,18 @@ Feature: Change Password
 
 For each screen, all seven states are addressed. "N/A — [reason]" is used only where a state genuinely cannot occur.
 
+### `/dashboard`
+
+| State | Behavior |
+|---|---|
+| Loading | Skeleton placeholders for all four widget areas. |
+| No applications | Funnel chart area replaced by a wide CTA card (distinct background color, rounded corners) prompting the user to log their first application, linking to `/applications/new`. Recent-applications and upcoming-items areas each show their own empty messages. |
+| Populated | All widgets render real data; funnel chart shows bars for all 9 statuses (statuses with zero applications shown at count 0). |
+| Widget partial failure | The failed widget shows an inline error with a Retry button; all other widgets render normally. |
+| Full failure | All widgets show an inline error with a Retry button. |
+| Offline | Offline banner shown across the top; all widget interactions disabled. |
+| Unauthorized | Middleware redirects to `/login` before page renders. |
+
 ### `/companies` (List)
 
 | State | Behavior |
@@ -895,7 +915,7 @@ Identical to `/resumes` list state matrix, substituting "cover letters" for "res
 
 ### Default State Pattern (Standard CRUD Screens)
 
-Applies to: `/companies/new`, `/companies/[id]`, `/companies/[id]/edit`, `/applications/new`, `/applications/[id]`, `/applications/[id]/edit`, `/resumes/new`, `/resumes/[id]`, `/resumes/[id]/edit`, `/resumes/[id]/fork`, `/cover-letters/new`, `/cover-letters/[id]`, `/cover-letters/[id]/edit`, `/cover-letters/[id]/fork`, `/profile/change-password`, `/dashboard`.
+Applies to: `/companies/new`, `/companies/[id]`, `/companies/[id]/edit`, `/applications/new`, `/applications/[id]`, `/applications/[id]/edit`, `/resumes/new`, `/resumes/[id]`, `/resumes/[id]/edit`, `/resumes/[id]/fork`, `/cover-letters/new`, `/cover-letters/[id]`, `/cover-letters/[id]/edit`, `/cover-letters/[id]/fork`, `/profile/change-password`.
 
 | State | Behavior |
 |---|---|

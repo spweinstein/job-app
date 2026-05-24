@@ -264,8 +264,8 @@ Phase 3 complete.
 |---|---|
 | Migration | `resumes` table + `cover_letters` table + RLS policies + FK constraints (per `docs/technical-spec.md#resumes-table`, `docs/technical-spec.md#cover-letters-table`) |
 | Migration (storage) | Create `avatars`, `resume-attachments`, and `cover-letter-attachments` buckets with storage RLS policies (storage bucket creation via Supabase CLI or migration) |
-| Server actions (resumes) | `createResume`, `updateResume`, `forkResume`, `deleteResume`, `getResumes`, `getResume` |
-| Server actions (cover letters) | `createCoverLetter`, `updateCoverLetter`, `forkCoverLetter`, `deleteCoverLetter`, `getCoverLetters`, `getCoverLetter` |
+| Server actions (resumes) | `createResume`, `updateResume`, `forkResume`, `deleteResume` — reads (`getResumes`, `getResume`) are Server Component queries per the Read Pattern rule |
+| Server actions (cover letters) | `createCoverLetter`, `updateCoverLetter`, `forkCoverLetter`, `deleteCoverLetter` — reads (`getCoverLetters`, `getCoverLetter`) are Server Component queries per the Read Pattern rule |
 | Zod schemas | `src/lib/validations/resumes.ts`, `src/lib/validations/cover-letters.ts` |
 | Content type | `ResumeContentV1` and `CoverLetterContentV1` TypeScript types in `src/types/index.ts` per `docs/technical-spec.md#resume-and-cover-letter-content-model` |
 | Content editor | Section-based form editor components in `src/components/resumes/` and `src/components/cover-letters/` |
@@ -280,6 +280,7 @@ From `docs/product-spec.md`:
 - `resumes#resumes--list-view`
 - `resumes#resumes--create`
 - `resumes#resumes--fork` — both scenarios (fork creates deep copy; edit fork does not mutate source)
+- `resumes#resumes--edit` — all 4 scenarios (add section; remove non-required section; contact_info cannot be removed; reorder sections)
 - `resumes#resumes--delete` — both scenarios (cannot delete with descendants; can delete leaf)
 - Cover letter equivalents (same criteria, `cover-letters` table/routes)
 
@@ -301,7 +302,7 @@ From `docs/product-spec.md`:
 
 ### Definition of Done
 
-All resumes and cover letters acceptance criteria pass. Fork semantics tested and passing. CI green.
+All resumes and cover letters acceptance criteria pass, including section editor (add/remove/reorder) and section invariants. Fork semantics tested and passing. CI green.
 
 ---
 
@@ -502,17 +503,18 @@ Phases 1–7 complete.
 | Recent applications widget | Fetches 5 most recently updated applications; shows role title, company, status chip |
 | Upcoming calendar items widget | Fetches calendar items with `start_at` or `due_at` in the next 7 days; shows title, kind, date |
 | Automations count widget | Shows count of enabled automations |
-| Funnel chart | Bar chart with one bar per application status (all 9 statuses shown); count derived from a single `SELECT status, count(*) GROUP BY status` aggregation query; clicking a bar navigates to `/applications?status=<status>` |
+| Funnel chart | Bar chart with one bar per application status (all 9 statuses shown); count derived from a single `SELECT status, count(*) GROUP BY status` aggregation query; clicking a bar navigates to `/applications?status=<status>`; hidden when user has zero applications |
+| Funnel CTA card | Shown in the funnel chart area when user has no applications; wide card with distinct background color and rounded corners; prompts user to log first application; links to `/applications/new` |
 | Quick-add | "Add application" button linking to `/applications/new` |
 | Empty state | Shown when user has no applications and no calendar items: "Welcome! Start by adding a company." |
 
 ### Acceptance Criteria
 
-- `docs/product-spec.md#dashboard--funnel-chart` — both scenarios (correct counts per status; click bar navigates to filtered list).
+- `docs/product-spec.md#dashboard--funnel-chart` — all 3 scenarios (correct counts per status; click bar navigates to filtered list; CTA card shown when no applications).
 
 ### Test Additions Required
 
-- E2E: new user sees empty state; user with data sees recent applications and upcoming items; funnel chart shows correct per-status counts; clicking a funnel bar navigates to `/applications?status=<status>`.
+- E2E: new user sees CTA card in funnel area and empty messages in other widgets; user with data sees recent applications, upcoming items, and funnel chart with correct per-status counts; clicking a funnel bar navigates to `/applications?status=<status>`.
 
 ### Non-Goals
 
@@ -520,7 +522,7 @@ Phases 1–7 complete.
 
 ### Definition of Done
 
-Dashboard renders correctly for new and existing users. Funnel chart shows all 9 statuses and correct counts; bar click navigates to filtered list. CI green. Preview deploy green.
+Dashboard renders correctly for new and existing users. New user sees CTA card in funnel area. Existing user sees funnel chart with all 9 statuses and correct counts; bar click navigates to filtered list. CI green. Preview deploy green.
 
 ---
 
