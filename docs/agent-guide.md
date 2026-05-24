@@ -100,6 +100,22 @@ The `automations.action_type` column is restricted to this closed set:
 
 Edits to a fork **never mutate ancestors**. This is enforced at the application layer and tested by integration tests.
 
+### Resume Section Types
+
+The `ResumeContentV1.sections[].type` field is restricted to this closed set (defined as `SectionType` in `src/types/index.ts`):
+
+| Section Type | Description |
+|---|---|
+| `contact_info` | Contact details (name, email, phone, location, LinkedIn, website). Exactly one required per resume; cannot be removed. |
+| `summary` | Professional summary. At most one per resume; may be removed. |
+| `work_experience` | Work history entries (company, title, dates, bullets). Zero or more per resume. |
+| `education` | Education entries (institution, degree, field, dates, GPA). Zero or more per resume. |
+| `skills` | Skill categories with item lists. Zero or more per resume. |
+| `certifications` | Certification entries (name, issuer, date). Zero or more per resume. |
+| `custom` | Free-form section (heading + body text). Zero or more per resume. |
+
+Invariants (enforced at application layer, not DB CHECK): exactly one `contact_info` must always be present; at most one `summary`; all other types may appear zero or more times. `order` values are re-indexed ascending on save.
+
 ### Field Name Conventions
 
 | Concept | Column Name |

@@ -252,7 +252,7 @@ All applications acceptance criteria pass. Triggers write correctly to `automati
 
 ### Scope
 
-Full CRUD for Resumes and Cover Letters, including fork creation and lineage display. Structured JSON content editor (form-based per section). Attach resume/cover letter to application. Optional DOCX or PDF file attachment on both resumes and cover letters (reference copy alongside the structured content).
+Full CRUD for Resumes and Cover Letters, including fork creation and lineage display. Structured section editor: users can add, remove, and reorder typed sections (work experience, education, skills, certifications, custom); each section has a repeatable entry form. Content stored as structured JSON per the `ResumeContentV1` schema in `docs/technical-spec.md`. Attach resume/cover letter to application. Optional DOCX or PDF file attachment on both resumes and cover letters (reference copy alongside the structured content).
 
 ### Prerequisites
 
@@ -285,9 +285,9 @@ From `docs/product-spec.md`:
 
 ### Test Additions Required
 
-- Unit: `forkResume` deep-copy assertion (source content unchanged after fork + edit); cycle-prevention logic in `forkResume`.
+- Unit: `forkResume` deep-copy assertion (source content unchanged after fork + edit); cycle-prevention logic in `forkResume`; section add/remove/reorder logic; `contact_info` cannot-be-removed invariant; `summary` at-most-one invariant.
 - Integration: fork resume → edit fork → assert source `content` unchanged; delete resume with fork → expect RESTRICT error → user-friendly error returned; RLS cross-user fork attempt blocked.
-- E2E: create resume → edit content → fork → edit fork → verify source unchanged; create cover letter → fork → link to application.
+- E2E: create resume → edit content → fork → edit fork → verify source unchanged; add section → reorder → remove non-required section → verify order; create cover letter → fork → link to application.
 
 ### State Matrix Coverage
 
@@ -488,7 +488,7 @@ All profile acceptance criteria pass. Avatar upload/display works. Notification 
 
 ### Scope
 
-Dashboard overview page: recent applications (last 5, by `updated_at`), upcoming calendar items (next 7 days), active automation count. Quick-add application button.
+Dashboard overview page: recent applications (last 5, by `updated_at`), upcoming calendar items (next 7 days), active automation count, application status funnel chart. Quick-add application button.
 
 ### Prerequisites
 
@@ -502,26 +502,25 @@ Phases 1–7 complete.
 | Recent applications widget | Fetches 5 most recently updated applications; shows role title, company, status chip |
 | Upcoming calendar items widget | Fetches calendar items with `start_at` or `due_at` in the next 7 days; shows title, kind, date |
 | Automations count widget | Shows count of enabled automations |
+| Funnel chart | Bar chart with one bar per application status (all 9 statuses shown); count derived from a single `SELECT status, count(*) GROUP BY status` aggregation query; clicking a bar navigates to `/applications?status=<status>` |
 | Quick-add | "Add application" button linking to `/applications/new` |
 | Empty state | Shown when user has no applications and no calendar items: "Welcome! Start by adding a company." |
 
 ### Acceptance Criteria
 
-No Gherkin scenarios are defined for the Dashboard in `docs/product-spec.md` (pending resolution of Open Question 1). The definition of done for this phase requires: dashboard renders without errors, all three widgets show correct data in Playwright tests, empty state shown for a new user.
+- `docs/product-spec.md#dashboard--funnel-chart` — both scenarios (correct counts per status; click bar navigates to filtered list).
 
 ### Test Additions Required
 
-- E2E: new user sees empty state; user with data sees recent applications and upcoming items.
+- E2E: new user sees empty state; user with data sees recent applications and upcoming items; funnel chart shows correct per-status counts; clicking a funnel bar navigates to `/applications?status=<status>`.
 
 ### Non-Goals
 
-- Charts or graphs (pending answer to Open Question 1 in `docs/product-spec.md`).
-- Application funnel visualization.
 - Notifications panel.
 
 ### Definition of Done
 
-Dashboard renders correctly for new and existing users. CI green. Preview deploy green.
+Dashboard renders correctly for new and existing users. Funnel chart shows all 9 statuses and correct counts; bar click navigates to filtered list. CI green. Preview deploy green.
 
 ---
 

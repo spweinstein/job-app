@@ -952,6 +952,8 @@ Rationale: Server Actions co-locate with the UI, provide automatic CSRF protecti
 
 Data reads occur directly in Server Components using `createServerClient` from `src/lib/supabase/server.ts`. Never wrap a SELECT-only query in a server action. Only mutating operations (create, update, delete, upload, toggle, fork) are server actions. This applies to all resources including `getAutomationActionLogs`, which is fetched in the `/automations/[id]` Server Component.
 
+The dashboard funnel aggregation is fetched in the Dashboard Server Component with a single `SELECT status, count(*) FROM applications WHERE user_id = $1 GROUP BY status` query; it is not a server action.
+
 ### Server Actions by Resource
 
 All server actions live in `src/actions/<resource>.ts`. Each action:
@@ -1113,10 +1115,30 @@ Server Actions do not return HTTP status codes; they return `ActionResult<T>` ob
 
 **Content schema version 1** (stored in `content_version = 1`):
 
+Each resume is a flat array of typed sections. Section types are a closed set. The UI renders sections in ascending `order` and allows users to add, remove, and reorder them. See `docs/agent-guide.md#section-types` for the closed set of valid `SectionType` values.
+
 ```typescript
-type ResumeContentV1 = {
-  schemaVersion: 1;
-  contactInfo: {
+// Lives in src/types/index.ts
+
+type SectionType =
+  | 'contact_info'
+  | 'summary'
+  | 'work_experience'
+  | 'education'
+  | 'skills'
+  | 'certifications'
+  | 'custom';
+
+type BaseSection = {
+  id: string;     // client-generated UUID; stable React list key
+  type: SectionType;
+  title: string;  // user-editable label, e.g. "Work Experience" or "Projects"
+  order: number;  // integer; sort ascending; need not be contiguous
+};
+
+type ContactInfoSection = BaseSection & {
+  type: 'contact_info';
+  data: {
     fullName: string;
     email: string;
     phone: string | null;
@@ -1124,16 +1146,28 @@ type ResumeContentV1 = {
     linkedinUrl: string | null;
     websiteUrl: string | null;
   };
-  summary: string | null;
-  workExperience: Array<{
-    id: string;          // client-generated UUID for list keys
+};
+
+type SummarySection = BaseSection & {
+  type: 'summary';
+  entries: [{ id: string; text: string }]; // exactly one entry; tuple enforces this
+};
+
+type WorkExperienceSection = BaseSection & {
+  type: 'work_experience';
+  entries: Array<{
+    id: string;
     company: string;
     title: string;
-    startDate: string;   // "YYYY-MM" format
-    endDate: string | null;  // null = "Present"
+    startDate: string;        // "YYYY-MM"
+    endDate: string | null;   // null = "Present"
     bullets: string[];
   }>;
-  education: Array<{
+};
+
+type EducationSection = BaseSection & {
+  type: 'education';
+  entries: Array<{
     id: string;
     institution: string;
     degree: string;
@@ -1142,18 +1176,70 @@ type ResumeContentV1 = {
     endDate: string | null;
     gpa: string | null;
   }>;
-  skills: Array<{
+};
+
+type SkillsSection = BaseSection & {
+  type: 'skills';
+  entries: Array<{
     id: string;
     category: string;
     items: string[];
   }>;
-  certifications: Array<{
+};
+
+type CertificationsSection = BaseSection & {
+  type: 'certifications';
+  entries: Array<{
     id: string;
     name: string;
     issuer: string;
     date: string | null;
   }>;
 };
+
+type CustomSection = BaseSection & {
+  type: 'custom';
+  entries: Array<{
+    id: string;
+    heading: string | null;
+    body: string; // plain text paragraph
+  }>;
+};
+
+export type ResumeSection =
+  | ContactInfoSection
+  | SummarySection
+  | WorkExperienceSection
+  | EducationSection
+  | SkillsSection
+  | CertificationsSection
+  | CustomSection;
+
+export type ResumeContentV1 = {
+  schemaVersion: 1;
+  sections: ResumeSection[];
+};
+```
+
+**Section invariants** (enforced by `updateResume` server action, not DB CHECK):
+- Exactly one `contact_info` section must be present at all times. It cannot be removed.
+- At most one `summary` section may exist. It may be removed entirely.
+- All other section types may appear zero or more times (e.g., two `work_experience` sections is valid).
+- On save: `order` values are re-indexed to `0, 1, 2, …` in the current visual order.
+
+**Default initial content** (populated by `createResume`):
+```json
+{
+  "schemaVersion": 1,
+  "sections": [
+    { "id": "<uuid>", "type": "contact_info", "title": "Contact", "order": 0,
+      "data": { "fullName": "", "email": "", "phone": null, "location": null, "linkedinUrl": null, "websiteUrl": null } },
+    { "id": "<uuid>", "type": "summary",        "title": "Summary",         "order": 1,
+      "entries": [{ "id": "<uuid>", "text": "" }] },
+    { "id": "<uuid>", "type": "work_experience","title": "Work Experience",  "order": 2, "entries": [] },
+    { "id": "<uuid>", "type": "education",      "title": "Education",        "order": 3, "entries": [] }
+  ]
+}
 ```
 
 **Cover letter content schema version 1:**

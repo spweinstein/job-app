@@ -126,7 +126,7 @@ Each route lists: purpose, primary actions, navigation targets, and notes.
 | `/signup` | Create new account | Submit email + password | `/login`, (email confirmation flow) |
 | `/forgot-password` | Request password reset email | Submit email | `/login` |
 | `/reset-password` | Set new password via token | Submit new password + confirmation | `/login` (on success) |
-| `/dashboard` | Overview: recent applications, upcoming calendar items, active automations count | Quick-add application, navigate to all major sections | `/applications`, `/calendar`, `/companies`, `/resumes`, `/automations` |
+| `/dashboard` | Overview: recent applications, upcoming calendar items, active automations count, application status funnel chart | Quick-add application, click funnel bar to filter applications, navigate to all major sections | `/applications`, `/applications?status=<status>`, `/calendar`, `/companies`, `/resumes`, `/automations` |
 | `/companies` | List all companies | Create company, search/filter | `/companies/[id]`, `/companies/new` |
 | `/companies/new` | Create a company | Submit form | `/companies/[id]` (on success), `/companies` (cancel) |
 | `/companies/[id]` | Company detail + list of its applications | Add application, edit company, delete company | `/companies/[id]/edit`, `/applications/new?companyId=[id]`, `/applications/[id]` |
@@ -138,7 +138,7 @@ Each route lists: purpose, primary actions, navigation targets, and notes.
 | `/resumes` | List all resumes (roots and forks) | Create resume, fork, search | `/resumes/[id]`, `/resumes/new` |
 | `/resumes/new` | Create a root resume | Submit form | `/resumes/[id]/edit` (on success) |
 | `/resumes/[id]` | Resume detail: content preview, fork lineage, linked applications | Fork, edit, delete (if no descendants), navigate lineage | `/resumes/[id]/edit`, `/resumes/[id]/fork`, `/applications/[id]` |
-| `/resumes/[id]/edit` | Edit resume content (structured JSON editor) | Save, cancel | `/resumes/[id]` |
+| `/resumes/[id]/edit` | Structured section editor: add/remove/reorder sections; each section has a typed form (repeatable field sets per entry) | Save, cancel, add section, remove section, reorder sections | `/resumes/[id]` |
 | `/resumes/[id]/fork` | Fork resume: name the fork, optionally link to application | Submit | `/resumes/[new-id]/edit` (on success) |
 | `/cover-letters` | List all cover letters | Create, fork, search | `/cover-letters/[id]`, `/cover-letters/new` |
 | `/cover-letters/new` | Create a root cover letter | Submit form | `/cover-letters/[id]/edit` (on success) |
@@ -267,6 +267,28 @@ Feature: Reset Password
     When I enter mismatched passwords
     Then I see "Passwords do not match."
     And the form is not submitted
+```
+
+---
+
+### Dashboard
+
+#### Dashboard — Funnel Chart
+
+```gherkin
+Feature: Dashboard Funnel Chart
+
+  Scenario: Funnel chart shows application count per status
+    Given I have applications with statuses "applied"×3, "screening"×1, "offer"×1
+    When I navigate to /dashboard
+    Then I see a chart with one bar per status
+    And the "applied" bar shows count 3
+    And statuses with zero applications are still shown with count 0
+
+  Scenario: Clicking a funnel bar navigates to filtered applications list
+    Given the dashboard funnel chart is visible
+    When I click the "offer" bar
+    Then I am navigated to /applications?status=offer
 ```
 
 ---
@@ -481,6 +503,34 @@ Feature: Fork Resume
     Given a forked resume with parent_id = <source-id>
     When I edit the fork's content and save
     Then the source resume's content is unchanged
+```
+
+#### Resumes — Edit
+
+```gherkin
+Feature: Edit Resume Sections
+
+  Scenario: Add a new section
+    Given I am editing a resume with no "certifications" section
+    When I click "Add section" and select "Certifications"
+    Then a new CertificationsSection is appended with order = max(existing orders) + 1
+    And the section appears at the bottom of the editor
+
+  Scenario: Remove a non-required section
+    Given I am editing a resume with a "skills" section
+    When I click "Remove section" on the Skills section
+    Then the section is removed from content.sections
+    And the remaining sections retain their relative order
+
+  Scenario: Cannot remove contact_info section
+    Given I am editing a resume
+    Then the "Contact" section has no "Remove section" button
+
+  Scenario: Reorder sections
+    Given I have "Work Experience" at order 2 and "Education" at order 3
+    When I drag "Education" above "Work Experience"
+    Then "Education" has a lower order value than "Work Experience"
+    And the editor renders them in the new order
 ```
 
 #### Resumes — Delete
@@ -1121,6 +1171,4 @@ Scenario: Confirmation dialogs trap focus
 
 ## Open Questions
 
-1. **Dashboard layout**: The spec defines the Dashboard as an overview screen but does not specify chart types or metrics beyond "recent applications" and "upcoming calendar items." Should the dashboard include an application funnel chart (count by status), or is a plain list sufficient for the initial release?
-2. **Resume content editor**: The spec calls for a "structured JSON editor." Should this be a form-based section editor (e.g., work experience, education, skills sections rendered as discrete fields) or a rich-text editor (e.g., Tiptap) per section? This choice affects the JSON schema design significantly.
-3. **Account deletion**: The `/profile` screen previously listed "delete account" as a primary action. This is deferred — no server action, acceptance criteria, or data-deletion cascade is specified for account deletion. It is not in scope for any current phase. Define behavior (immediate hard-delete vs. grace period) before implementing.
+1. **Account deletion**: The `/profile` screen previously listed "delete account" as a primary action. This is deferred — no server action, acceptance criteria, or data-deletion cascade is specified for account deletion. It is not in scope for any current phase. Define behavior (immediate hard-delete vs. grace period) before implementing.
