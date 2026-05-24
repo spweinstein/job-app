@@ -120,7 +120,7 @@ From `docs/product-spec.md`:
 
 ### State Matrix Coverage
 
-Auth screens: all seven states per `docs/product-spec.md#auth-screens` must be covered.
+Auth screens: all seven states per `docs/product-spec.md#auth-screens-login-signup-forgot-password-reset-password` must be covered.
 
 ### Non-Goals
 
@@ -328,6 +328,7 @@ Phase 3 complete. (Phase 4 is not a prerequisite but should be merged first if r
 | Month view | React calendar grid component showing items on their `start_at` date (for timed kinds) or `due_at` date (for tasks). Use `date-fns` for date math. |
 | List view | Chronological list as alternative to month view; toggle between views persisted in URL param `?view=list`. |
 | Kind filter | Filter by kind (multi-select); updates URL param `?kind=interview,meeting` (etc.) |
+| Application filter | Dropdown to filter calendar items by linked application; updates URL param `?applicationId=<uuid>`; shows only items where `application_id` matches |
 | Task complete | Inline "Mark complete" button on task card; calls `completeTask` action. |
 | Application link | Interview create/edit form requires selecting an application (dropdown of user's applications). |
 | Supabase types | Regenerate after migration |
@@ -335,7 +336,7 @@ Phase 3 complete. (Phase 4 is not a prerequisite but should be merged first if r
 ### Acceptance Criteria (must pass)
 
 From `docs/product-spec.md`:
-- `calendar-items#calendar-items--list-and-views` — both scenarios
+- `calendar-items#calendar-items--list-and-views` — all three scenarios (month view, filter by kind, filter by application)
 - `calendar-items#calendar-items--create` — all three scenarios (task, interview-with-application, interview-without-application)
 - `calendar-items#calendar-items--complete-task`
 
@@ -343,18 +344,18 @@ From `docs/product-spec.md`:
 
 - Unit: `createCalendarItemSchema` — interview without application_id rejected; end_at before start_at rejected; task without due_at allowed.
 - Integration: create interview → `automation_events` row written; interview CHECK constraint enforced (application_id required); end_after_start CHECK enforced.
-- E2E: create task → mark complete; create interview linked to application → appears on calendar; filter by kind = 'interview'.
+- E2E: create task → mark complete; create interview linked to application → appears on calendar; filter by kind = 'interview'; filter by application.
 
 ### State Matrix Coverage
 
-`/calendar`: all seven states.
+`/calendar` list, `/calendar/new`, `/calendar/[id]`, and `/calendar/[id]/edit`: all seven states per `docs/product-spec.md#state-matrices`.
 
 ### Non-Goals
 
 - Recurring events.
 - External calendar sync (Google Calendar, iCal export).
 - Drag-and-drop rescheduling on the calendar grid.
-- Week view (month + list views only in this phase).
+- Week view (month + list views only in scope; week view deferred indefinitely).
 
 ### Definition of Done
 
@@ -412,7 +413,7 @@ From `docs/product-spec.md`:
 
 ### State Matrix Coverage
 
-`/automations` list: all seven states. `/automations/new`: all seven states per `docs/product-spec.md#automations-new-create-form`.
+`/automations` list: all seven states per `docs/product-spec.md#automations-list`. `/automations/new`: all seven states per `docs/product-spec.md#automationsnew-create-automation-form`. `/automations/[id]`: all seven states per `docs/product-spec.md#automationsid-automation-detail--execution-history`. `/automations/[id]/edit`: all seven states per `docs/product-spec.md#automationsidedit-edit-automation`.
 
 ### Non-Goals
 
@@ -438,7 +439,7 @@ Profile edit page (display name, avatar upload). Change password page. Notificat
 
 ### Prerequisites
 
-Phase 1 complete. (Storage buckets created in Phase 4; if Phase 4 is not yet merged, create the `avatars` bucket migration here.)
+Phase 1 complete; Phase 4 must have merged (avatars bucket is created there). If Phase 4 has not yet merged at the time this phase begins, create the `avatars` bucket migration here instead.
 
 ### Deliverables
 

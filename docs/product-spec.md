@@ -145,7 +145,7 @@ Each route lists: purpose, primary actions, navigation targets, and notes.
 | `/cover-letters/[id]` | Cover letter detail: content preview, fork lineage, linked application | Fork, edit, delete (if no descendants), navigate lineage | `/cover-letters/[id]/edit`, `/cover-letters/[id]/fork`, `/applications/[id]` |
 | `/cover-letters/[id]/edit` | Edit cover letter content | Save, cancel | `/cover-letters/[id]` |
 | `/cover-letters/[id]/fork` | Fork cover letter | Submit | `/cover-letters/[new-id]/edit` (on success) |
-| `/calendar` | Month/week/list view of all calendar items | Create item, filter by kind, filter by application | `/calendar/new`, `/calendar/[id]`, `/applications/[id]` |
+| `/calendar` | Month/list view of all calendar items | Create item, filter by kind, filter by application | `/calendar/new`, `/calendar/[id]`, `/applications/[id]` |
 | `/calendar/new` | Create a calendar item | Submit form (select kind, optionally link application) | `/calendar/[id]` (on success), `/calendar` (cancel) |
 | `/calendar/[id]` | Calendar item detail | Edit, delete, mark task complete | `/calendar/[id]/edit`, `/applications/[id]` (if linked) |
 | `/calendar/[id]/edit` | Edit calendar item | Submit form | `/calendar/[id]` (on success/cancel) |
@@ -153,7 +153,7 @@ Each route lists: purpose, primary actions, navigation targets, and notes.
 | `/automations/new` | Create an automation | Submit form (trigger + action config) | `/automations/[id]` (on success) |
 | `/automations/[id]` | Automation detail: config, execution history log | Edit, enable/disable, delete | `/automations/[id]/edit` |
 | `/automations/[id]/edit` | Edit automation config | Submit form | `/automations/[id]` (on success/cancel) |
-| `/profile` | View and edit profile: display name, avatar, notification preferences | Submit form, change password, delete account | `/profile/change-password` |
+| `/profile` | View and edit profile: display name, avatar, notification preferences | Submit form, change password | `/profile/change-password` |
 | `/profile/change-password` | Change password (requires current password) | Submit form | `/profile` (on success/cancel) |
 
 ### Error and Auth Screens
@@ -373,6 +373,8 @@ Feature: Applications List
     Then only Acme applications are shown
 ```
 
+**Note:** The status filter dropdown must list all nine statuses defined in `docs/agent-guide.md#application-statuses` (`draft`, `applied`, `screening`, `interviewing`, `offer`, `negotiating`, `accepted`, `rejected`, `withdrawn`). The scenarios above use a subset for illustration only.
+
 #### Applications — Create
 
 ```gherkin
@@ -411,11 +413,24 @@ Feature: Application Status Change
 ```gherkin
 Feature: Delete Application
 
-  Scenario: Successful deletion
-    Given an application owned by me
+  Scenario: Successful deletion with no linked calendar items
+    Given an application owned by me with no linked calendar items
     When I click "Delete application" and confirm
     Then the application row is deleted
     And I am redirected to /applications
+
+  Scenario: Delete application with linked calendar items
+    Given an application with 1 interview and 2 tasks linked to it
+    When I click "Delete application"
+    Then I see "Deleting this application will also delete 1 interview and 2 tasks. This cannot be undone."
+    When I confirm
+    Then the application and all its linked calendar items are deleted
+    And I am redirected to /applications
+
+  Scenario: Confirmation message reflects correct counts and kinds
+    Given an application with 2 meetings and 1 interview linked
+    When I click "Delete application"
+    Then I see "Deleting this application will also delete 1 interview and 2 meetings. This cannot be undone."
 ```
 
 ---
@@ -488,17 +503,66 @@ Feature: Delete Resume
 
 ### Cover Letters
 
-Acceptance criteria mirror Resumes. Replace "resume" with "cover letter" and `/resumes` with `/cover-letters` throughout. The data model and fork semantics are identical.
+#### Cover Letters — List View
+
+```gherkin
+Feature: Cover Letters List
+
+  Scenario: Shows root and fork cover letters
+    Given I have 1 root cover letter and 2 forks of it
+    When I navigate to /cover-letters
+    Then I see all 3 cover letters
+    And fork cover letters show a "Fork of <parent name>" label
+```
+
+#### Cover Letters — Create
 
 ```gherkin
 Feature: Create Cover Letter
-  (same as Resumes — Create, substituting cover_letters table and /cover-letters routes)
 
+  Scenario: Create root cover letter
+    Given I am on /cover-letters/new
+    When I enter name "Base Cover Letter"
+    And I click "Save"
+    Then a cover_letters row is created with parent_id = NULL and root_id = id
+    And I am redirected to /cover-letters/<new-id>/edit
+```
+
+#### Cover Letters — Fork
+
+```gherkin
 Feature: Fork Cover Letter
-  (same as Resumes — Fork, substituting cover_letters table and /cover-letters routes)
 
+  Scenario: Fork creates a deep copy
+    Given a cover letter with id <source-id> and content {"body": [...]}
+    When I click "Fork" on /cover-letters/<source-id>
+    And I name the fork "Cover Letter for Acme"
+    And I click "Create fork"
+    Then a new cover_letters row is created with parent_id = <source-id>
+    And root_id = <source root_id>
+    And content is a deep copy of the source content
+    And I am redirected to /cover-letters/<new-id>/edit
+
+  Scenario: Editing a fork does not mutate the source
+    Given a forked cover letter with parent_id = <source-id>
+    When I edit the fork's content and save
+    Then the source cover letter's content is unchanged
+```
+
+#### Cover Letters — Delete
+
+```gherkin
 Feature: Delete Cover Letter
-  (same as Resumes — Delete, substituting cover_letters table and /cover-letters routes)
+
+  Scenario: Cannot delete a cover letter with descendants
+    Given a cover letter that has 1 fork
+    When I click "Delete"
+    Then I see "This cover letter has forks and cannot be deleted. Delete all forks first."
+
+  Scenario: Delete a leaf cover letter (no descendants)
+    Given a fork cover letter with no further forks
+    When I click "Delete" and confirm
+    Then the cover_letters row is deleted
 ```
 
 ---
@@ -519,6 +583,12 @@ Feature: Calendar Views
     Given items of kinds "task", "meeting", "interview"
     When I select "Interviews" filter
     Then only "interview" kind items are shown
+
+  Scenario: Filter by application
+    Given calendar items linked to application "Software Engineer at Acme" and unlinked items
+    When I select "Software Engineer at Acme" from the application filter
+    Then only calendar items linked to that application are shown
+    And unlinked items are not shown
 ```
 
 #### Calendar Items — Create
@@ -633,6 +703,20 @@ Feature: Edit Profile
     Then the file is stored in the "avatars" bucket
     And avatar_url is updated in profiles
     And the avatar image is displayed
+
+  Scenario: Disable email notifications
+    Given I am on /profile with notification_email_enabled = true
+    When I toggle "Email notifications" off
+    And I click "Save"
+    Then profiles.notification_email_enabled is set to false
+    And subsequent automation send_email actions for my account are skipped
+
+  Scenario: Re-enable email notifications
+    Given I am on /profile with notification_email_enabled = false
+    When I toggle "Email notifications" on
+    And I click "Save"
+    Then profiles.notification_email_enabled is set to true
+    And subsequent automation send_email actions resume delivery
 ```
 
 #### Profile — Change Password
@@ -759,6 +843,84 @@ Identical to `/resumes` list state matrix, substituting "cover letters" for "res
 | Offline | Submit button disabled. "You appear to be offline." |
 | Unauthorized | N/A — these screens are accessible without authentication. |
 
+### Default State Pattern (Standard CRUD Screens)
+
+Applies to: `/companies/new`, `/companies/[id]`, `/companies/[id]/edit`, `/applications/new`, `/applications/[id]`, `/applications/[id]/edit`, `/resumes/new`, `/resumes/[id]`, `/resumes/[id]/edit`, `/resumes/[id]/fork`, `/cover-letters/new`, `/cover-letters/[id]`, `/cover-letters/[id]/edit`, `/cover-letters/[id]/fork`, `/profile/change-password`, `/dashboard`.
+
+| State | Behavior |
+|---|---|
+| Loading | Skeleton fields or cards while server data loads. |
+| Empty | N/A for form screens (never empty — always blank or pre-filled). For detail screens: resource not found or FORBIDDEN redirects to the global 404 page. |
+| Populated | Fields pre-filled from server data; content rendered. |
+| Partial failure | Inline field-level error; unaffected fields remain usable. |
+| Full failure | Inline error above the submit button with the error message; form data preserved. |
+| Offline | Submit/action buttons disabled; offline banner shown. |
+| Unauthorized | Middleware redirects to `/login?redirect=<current-path>` before page renders. |
+
+Deviations from this pattern must be documented explicitly in the relevant section below.
+
+### `/calendar/new` (Create Calendar Item Form)
+
+| State | Behavior |
+|---|---|
+| Loading | N/A — form fields are static. The application dropdown (visible when kind = 'interview' is selected) loads applications on kind selection. |
+| Empty | All fields blank; kind selector shown. |
+| Populated | Fields filled, no errors. |
+| Partial failure | If kind = 'interview' is selected and the applications dropdown fails to load: show "Could not load applications. Refresh to try again." Interview cannot be saved until the dropdown loads. |
+| Full failure | If save fails: inline error above submit; form data preserved. |
+| Offline | Submit disabled; offline banner. If kind = 'interview', application dropdown shows "Offline — application list unavailable." |
+| Unauthorized | Middleware redirect. |
+
+### `/calendar/[id]` (Calendar Item Detail)
+
+| State | Behavior |
+|---|---|
+| Loading | Skeleton fields. |
+| Empty | N/A — navigating to a non-existent ID redirects to global 404. |
+| Populated | Full item detail shown: kind chip, title, dates, notes, linked application name (if any). |
+| Partial failure | If the linked application data fails to load: show item detail with "[Application data unavailable — refresh to retry]" in the linked application field. Complete/delete actions remain available. |
+| Full failure | Inline error: "Could not load this calendar item. Try again." with Retry button. |
+| Offline | Offline banner. "Mark complete" and "Delete" buttons disabled with tooltip "You are offline." |
+| Unauthorized | Middleware redirect (or 404 if the item belongs to another user). |
+
+### `/calendar/[id]/edit` (Edit Calendar Item)
+
+| State | Behavior |
+|---|---|
+| Loading | Skeleton fields while item data loads. |
+| Empty | N/A — edit screen always pre-populated. |
+| Populated | Fields pre-filled from the calendar item row. |
+| Partial failure | If kind = 'interview' and the applications dropdown fails to reload on page load: show "[Could not load application list — current linked application preserved]"; allow save with the existing `application_id` unchanged. |
+| Full failure | If save fails: inline error above submit; form data preserved. |
+| Offline | Submit disabled; offline banner. |
+| Unauthorized | Middleware redirect. |
+
+### `/automations/[id]` (Automation Detail + Execution History)
+
+This screen has two independent data panels: the automation config (top) and the execution history log (bottom). Each can fail independently.
+
+| State | Behavior |
+|---|---|
+| Loading | Skeleton for config panel + skeleton rows for history panel. |
+| Empty | Config panel shows automation details. History panel shows "This automation has not fired yet." |
+| Populated | Config shown; history entries in reverse chronological order with timestamp, trigger event summary, and status badge. |
+| Partial failure | If config loads but history fails: show config + "Could not load execution history. Refresh to retry." inline in the history panel. If history loads but config fails: show history + "Could not load automation details." in the config panel. Enable/disable toggle disabled until config loads. |
+| Full failure | Both panels show inline errors with Retry. |
+| Offline | Offline banner. Enable/disable toggle disabled with tooltip "You are offline." |
+| Unauthorized | Middleware redirect. |
+
+### `/automations/[id]/edit` (Edit Automation)
+
+| State | Behavior |
+|---|---|
+| Loading | Skeleton fields while automation row loads. |
+| Empty | N/A — edit screen always pre-populated. |
+| Populated | Trigger and action fields pre-filled from the automation row. |
+| Partial failure | N/A — all fields derive from a single automation row; no multi-source loading. |
+| Full failure | If save fails: inline error above submit; form data preserved. |
+| Offline | Submit disabled; offline banner. |
+| Unauthorized | Middleware redirect. |
+
 ---
 
 ## Validation Rules
@@ -852,8 +1014,8 @@ All error messages are exact strings. Client-side validation fires on blur; serv
 | Title | Required, max 200 chars | "Title is required." / "Title must be 200 characters or fewer." |
 | Application link | Required when kind = 'interview' | "Interviews must be linked to an application." |
 | start_at | Required when kind ∈ {event, meeting, interview} | "Start time is required." |
-| end_at | Required when kind ∈ {event, meeting, interview}; must be after start_at | "End time is required." / "End time must be after start time." |
-| due_at | Optional when kind = 'task'; must be a future date if provided on creation | "Due date must be in the future." |
+| end_at | Required when kind ∈ {event, meeting, interview}; must be strictly after start_at (equal not allowed; zero-duration events are invalid) | "End time is required." / "End time must be after start time." |
+| due_at | Optional when kind = 'task'; must be a future date if provided on creation; no restriction on edit (allows backdating overdue tasks) | "Due date must be in the future." |
 
 ### Create/Edit Automation
 
@@ -961,5 +1123,4 @@ Scenario: Confirmation dialogs trap focus
 
 1. **Dashboard layout**: The spec defines the Dashboard as an overview screen but does not specify chart types or metrics beyond "recent applications" and "upcoming calendar items." Should the dashboard include an application funnel chart (count by status), or is a plain list sufficient for the initial release?
 2. **Resume content editor**: The spec calls for a "structured JSON editor." Should this be a form-based section editor (e.g., work experience, education, skills sections rendered as discrete fields) or a rich-text editor (e.g., Tiptap) per section? This choice affects the JSON schema design significantly.
-3. **Notification preferences on Profile**: The spec mentions "notification preferences" in the Profile but does not enumerate them. Are these in-app only, or do they govern which automation actions can send email?
-4. **Account deletion**: The Profile screen lists "delete account" as an action, but no acceptance criteria or data-deletion cascade is specified. Define behavior and confirm before implementing.
+3. **Account deletion**: The `/profile` screen previously listed "delete account" as a primary action. This is deferred — no server action, acceptance criteria, or data-deletion cascade is specified for account deletion. It is not in scope for any current phase. Define behavior (immediate hard-delete vs. grace period) before implementing.

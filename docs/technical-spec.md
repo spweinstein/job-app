@@ -118,6 +118,7 @@ All terminology defers to `docs/agent-guide.md#glossary`. All resource names, fi
 │   │   ├── not-found.tsx            # Global 404 + FORBIDDEN page
 │   │   └── error.tsx                # Global error boundary
 │   ├── actions/                     # Server actions, one file per resource
+│   │   ├── auth.ts
 │   │   ├── companies.ts
 │   │   ├── applications.ts
 │   │   ├── resumes.ts
@@ -134,6 +135,7 @@ All terminology defers to `docs/agent-guide.md#glossary`. All resource names, fi
 │   │   │   ├── client.ts            # createBrowserClient (for client components / React Query)
 │   │   │   └── middleware.ts        # createMiddlewareClient
 │   │   ├── validations/             # Zod schemas, one file per resource
+│   │   │   ├── auth.ts
 │   │   │   ├── companies.ts
 │   │   │   ├── applications.ts
 │   │   │   ├── resumes.ts
@@ -141,6 +143,7 @@ All terminology defers to `docs/agent-guide.md#glossary`. All resource names, fi
 │   │   │   ├── calendar-items.ts
 │   │   │   ├── automations.ts
 │   │   │   └── profile.ts
+│   │   ├── content-migrations.ts    # Migrates resume/cover-letter content JSON between schema versions
 │   │   ├── logger.ts                # Structured JSON logger (wraps console in dev, sends to Sentry in prod)
 │   │   ├── errors.ts                # AppError class, error code enum, toActionError helper
 │   │   └── utils.ts                 # Pure utility functions (formatting, cn(), etc.)
@@ -401,6 +404,45 @@ CREATE TRIGGER applications_status_changed
   FOR EACH ROW EXECUTE FUNCTION public.emit_application_status_changed();
 ```
 
+**Automation trigger (`application_created`):**
+
+```sql
+CREATE OR REPLACE FUNCTION public.emit_application_created()
+RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+BEGIN
+  INSERT INTO public.automation_events (user_id, trigger_type, payload)
+  VALUES (
+    NEW.user_id,
+    'application_created',
+    jsonb_build_object('application_id', NEW.id)
+  );
+  RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER applications_created
+  AFTER INSERT ON public.applications
+  FOR EACH ROW EXECUTE FUNCTION public.emit_application_created();
+```
+
+**`applied_at` trigger (sets timestamp on first transition to `'applied'`):**
+
+```sql
+CREATE OR REPLACE FUNCTION public.set_applied_at()
+RETURNS TRIGGER LANGUAGE plpgsql AS $$
+BEGIN
+  IF NEW.status = 'applied' AND (TG_OP = 'INSERT' OR OLD.status IS DISTINCT FROM 'applied') THEN
+    NEW.applied_at = now();
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER applications_set_applied_at
+  BEFORE INSERT OR UPDATE ON public.applications
+  FOR EACH ROW EXECUTE FUNCTION public.set_applied_at();
+```
+
 ---
 
 ### resumes-table
@@ -463,9 +505,36 @@ CREATE POLICY "resumes_delete_own"
 
 **Table:** `cover_letters`
 
-Column list, constraints, indexes, and RLS policies are identical to `resumes` — copy the pattern verbatim with `cover_letters` substituted for `resumes` and all self-referencing FKs pointing to `cover_letters`. This includes the `attachment_url` column for optional DOCX/PDF file attachments, stored in the `cover-letter-attachments` bucket (see [File Storage](#file-storage)).
+| Column | Type | Nullable | Default | Notes |
+|---|---|---|---|---|
+| `id` | `uuid` | NOT NULL | `gen_random_uuid()` | PK |
+| `user_id` | `uuid` | NOT NULL | — | Owner |
+| `name` | `text` | NOT NULL | — | Display name |
+| `content` | `jsonb` | NOT NULL | `'{}'::jsonb` | Versioned content; see [Resume and Cover Letter Content Model](#resume-and-cover-letter-content-model) |
+| `content_version` | `integer` | NOT NULL | `1` | Schema version of `content` JSON |
+| `attachment_url` | `text` | NULL | — | Storage path of uploaded DOCX or PDF; NULL if no file attached |
+| `parent_id` | `uuid` | NULL | — | FK → cover_letters(id); NULL for root |
+| `root_id` | `uuid` | NOT NULL | — | FK → cover_letters(id); equals `id` for root |
+| `created_at` | `timestamptz` | NOT NULL | `now()` | |
+| `updated_at` | `timestamptz` | NOT NULL | `now()` | |
 
-The automation trigger for `application_created` fires on INSERT into `applications`, not on cover letters. Cover letters have no dedicated triggers.
+**Foreign Keys:**
+- `user_id` → `auth.users(id)` ON DELETE CASCADE
+- `parent_id` → `cover_letters(id)` ON DELETE RESTRICT
+- `root_id` → `cover_letters(id)` ON DELETE RESTRICT
+
+**Cycle prevention:** Same application-layer check as `resumes` — see `docs/technical-spec.md#resumes-table`.
+
+**Indexes:**
+- `idx_cover_letters_user_id` ON `cover_letters(user_id)`
+- `idx_cover_letters_root_id` ON `cover_letters(root_id)`
+- `idx_cover_letters_parent_id` ON `cover_letters(parent_id)` WHERE `parent_id IS NOT NULL`
+
+**RLS Policies:** Identical to `resumes` — substitute `cover_letters` for `resumes` in every policy name and table reference.
+
+**Note:** The RESTRICT FK on `parent_id` prevents DB-level deletion while forks exist. The application layer checks for descendants before attempting delete and returns a user-friendly error.
+
+No Postgres triggers. The automation trigger for `application_created` fires on `applications` INSERT, not on cover letters.
 
 ---
 
@@ -501,13 +570,15 @@ CONSTRAINT calendar_items_timed_kinds_require_start CHECK (
   kind = 'task' OR start_at IS NOT NULL
 ),
 CONSTRAINT calendar_items_end_after_start CHECK (
-  end_at IS NULL OR start_at IS NULL OR end_at >= start_at
+  end_at IS NULL OR start_at IS NULL OR end_at > start_at
 )
 ```
 
+**`due_at` validation note:** `createCalendarItemSchema` must include `.refine(val => val == null || val > new Date(), { message: "Due date must be in the future." })` on `due_at`. The `updateCalendarItemSchema` omits this refine — past due dates are valid on edit (allows backdating overdue tasks).
+
 **Foreign Keys:**
 - `user_id` → `auth.users(id)` ON DELETE CASCADE
-- `application_id` → `applications(id)` ON DELETE SET NULL
+- `application_id` → `applications(id)` ON DELETE CASCADE
 
 **Indexes:**
 - `idx_calendar_items_user_id` ON `calendar_items(user_id)`
@@ -673,6 +744,19 @@ Immutable log. No UPDATE or DELETE from application code.
 
 **Unique Constraint:** `UNIQUE (idempotency_key)`
 
+**Check Constraints:**
+
+```sql
+CONSTRAINT automation_events_trigger_type_check CHECK (
+  trigger_type IN (
+    'application_status_changed',
+    'application_created',
+    'interview_scheduled',
+    'task_due_soon'
+  )
+)
+```
+
 **Foreign Keys:**
 - `user_id` → `auth.users(id)` ON DELETE CASCADE
 
@@ -729,8 +813,11 @@ Immutable log. No UPDATE or DELETE from application code.
 **Check Constraints:**
 
 ```sql
+CONSTRAINT automation_action_logs_action_type_check CHECK (
+  action_type IN ('send_email', 'create_task', 'update_application_status')
+),
 CONSTRAINT automation_action_logs_status_check CHECK (
-  status IN ('succeeded', 'failed', 'retrying')
+  status IN ('succeeded', 'failed', 'retrying', 'skipped')
 )
 ```
 
@@ -851,7 +938,7 @@ export async function updateCompany(id: string, data: UpdateCompanyInput) {
 }
 ```
 
-**Edge Functions** use the `SUPABASE_SERVICE_ROLE_KEY` to bypass RLS for writing `automation_action_logs` and updating `automation_events.processed_at`. Service role access is limited to these two tables and only from Edge Functions.
+**Edge Functions** use the `SUPABASE_SERVICE_ROLE_KEY` to bypass RLS for: writing `automation_action_logs`, updating `automation_events.processed_at`, and updating `automations.last_fired_at`. Service role access is limited to these three tables and only from Edge Functions.
 
 ---
 
@@ -860,6 +947,10 @@ export async function updateCompany(id: string, data: UpdateCompanyInput) {
 **Decision: Server Actions for all data operations; Route Handlers for external webhooks only.**
 
 Rationale: Server Actions co-locate with the UI, provide automatic CSRF protection, return typed results, and integrate with `revalidatePath`. Route Handlers are used only where an external HTTP caller (not a browser form) must POST to an endpoint (e.g., Resend webhooks for delivery status).
+
+### Read Pattern
+
+Data reads occur directly in Server Components using `createServerClient` from `src/lib/supabase/server.ts`. Never wrap a SELECT-only query in a server action. Only mutating operations (create, update, delete, upload, toggle, fork) are server actions. This applies to all resources including `getAutomationActionLogs`, which is fetched in the `/automations/[id]` Server Component.
 
 ### Server Actions by Resource
 
@@ -889,6 +980,11 @@ if (!parsed.success) {
 
 | Action | File | Input Schema | Returns on Success | Revalidates |
 |---|---|---|---|---|
+| `signUp` | `auth.ts` | `signUpSchema` | `{}` | — |
+| `signIn` | `auth.ts` | `signInSchema` | `{}` | — |
+| `signOut` | `auth.ts` | `{}` | `{}` | — |
+| `sendPasswordResetEmail` | `auth.ts` | `forgotPasswordSchema` | `{}` | — |
+| `resetPassword` | `auth.ts` | `resetPasswordSchema` | `{}` | — |
 | `createCompany` | `companies.ts` | `createCompanySchema` | `{ id: string }` | `/companies` |
 | `updateCompany` | `companies.ts` | `updateCompanySchema` | `{ id: string }` | `/companies/[id]`, `/companies` |
 | `deleteCompany` | `companies.ts` | `{ id: string }` | `{ id: string }` | `/companies` |
@@ -1122,28 +1218,18 @@ The four trigger types and their Postgres implementations:
 | `application_status_changed` | `AFTER UPDATE` trigger on `applications` (function: `emit_application_status_changed`) |
 | `application_created` | `AFTER INSERT` trigger on `applications` (function: `emit_application_created`) |
 | `interview_scheduled` | `AFTER INSERT` trigger on `calendar_items` WHERE `kind = 'interview'` (function: `emit_interview_scheduled`) |
-| `task_due_soon` | Cron Edge Function runs every 15 minutes, queries `calendar_items` for tasks with `due_at` within 24 hours and `completed_at IS NULL`, inserts events if not already emitted within the window (idempotency: check for existing event with same `calendar_item_id` and `trigger_type` within the last 24 hours) |
+| `task_due_soon` | Cron Edge Function runs every 15 minutes, queries `calendar_items` for tasks with `due_at` within `automation.trigger_config.hours_before` hours (default 24 if absent) and `completed_at IS NULL`; inserts events if not already emitted (idempotency: check for existing `automation_events` row with same `calendar_item_id` in payload and `trigger_type = 'task_due_soon'` within the same window) |
 
-**`application_created` trigger:**
+**`application_created` and `applied_at` triggers:** Defined in `docs/technical-spec.md#applications-table`.
 
-```sql
-CREATE OR REPLACE FUNCTION public.emit_application_created()
-RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
-BEGIN
-  INSERT INTO public.automation_events (user_id, trigger_type, payload)
-  VALUES (
-    NEW.user_id,
-    'application_created',
-    jsonb_build_object('application_id', NEW.id)
-  );
-  RETURN NEW;
-END;
-$$;
+**`automation_events` payload shapes per trigger type:**
 
-CREATE TRIGGER applications_created
-  AFTER INSERT ON public.applications
-  FOR EACH ROW EXECUTE FUNCTION public.emit_application_created();
-```
+| Trigger Type | Payload Shape |
+|---|---|
+| `application_status_changed` | `{ "application_id": "<uuid>", "old_status": "<status>", "new_status": "<status>" }` |
+| `application_created` | `{ "application_id": "<uuid>" }` |
+| `interview_scheduled` | `{ "calendar_item_id": "<uuid>", "application_id": "<uuid>", "start_at": "<timestamptz>" }` |
+| `task_due_soon` | `{ "calendar_item_id": "<uuid>", "due_at": "<timestamptz>" }` |
 
 ### Action Execution
 
@@ -1157,9 +1243,13 @@ CREATE TRIGGER applications_created
 2. For each event, mark `processed_at = now()` immediately (claim the event; prevents double-processing).
 3. Fetch all enabled automations for the event's `user_id` and `trigger_type`.
 4. For each matching automation, evaluate `trigger_config` conditions against the event `payload`.
-5. If conditions match, execute the action.
-6. Write `automation_action_logs` row with the outcome.
-7. Update `automations.last_fired_at`.
+5. If conditions match:
+   - **Idempotency check first**: if an `automation_action_logs` row already exists for this `automation_event_id` + `automation_id` with `status = 'succeeded'`, write a `status = 'skipped'` log row and continue.
+   - **For `send_email` actions**: verify `profiles.notification_email_enabled = true` for the user. If false, write `status = 'skipped'` log row and continue.
+   - **For `update_application_status` actions**: fetch the application's current `status`. If it already equals `action_config.to_status`, write `status = 'skipped'` log row and continue (prevents automation loops).
+   - Otherwise, execute the action.
+6. Write `automation_action_logs` row with the outcome (`succeeded`, `failed`, or `retrying`).
+7. Update `automations.last_fired_at` (service role; see [Authorization Model](#authorization-model)).
 
 **Retry policy:**
 
