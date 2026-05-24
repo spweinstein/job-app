@@ -252,7 +252,7 @@ All applications acceptance criteria pass. Triggers write correctly to `automati
 
 ### Scope
 
-Full CRUD for Resumes and Cover Letters, including fork creation and lineage display. Structured JSON content editor (form-based per section). Attach resume/cover letter to application. File storage for resume PDF attachments (optional upload).
+Full CRUD for Resumes and Cover Letters, including fork creation and lineage display. Structured JSON content editor (form-based per section). Attach resume/cover letter to application. Optional DOCX or PDF file attachment on both resumes and cover letters (reference copy alongside the structured content).
 
 ### Prerequisites
 
@@ -263,14 +263,14 @@ Phase 3 complete.
 | Deliverable | Detail |
 |---|---|
 | Migration | `resumes` table + `cover_letters` table + RLS policies + FK constraints (per `docs/technical-spec.md#resumes-table`, `docs/technical-spec.md#cover-letters-table`) |
-| Migration (storage) | Create `avatars` and `resume-attachments` buckets with storage RLS policies (storage bucket creation via Supabase CLI or migration) |
+| Migration (storage) | Create `avatars`, `resume-attachments`, and `cover-letter-attachments` buckets with storage RLS policies (storage bucket creation via Supabase CLI or migration) |
 | Server actions (resumes) | `createResume`, `updateResume`, `forkResume`, `deleteResume`, `getResumes`, `getResume` |
 | Server actions (cover letters) | `createCoverLetter`, `updateCoverLetter`, `forkCoverLetter`, `deleteCoverLetter`, `getCoverLetters`, `getCoverLetter` |
 | Zod schemas | `src/lib/validations/resumes.ts`, `src/lib/validations/cover-letters.ts` |
 | Content type | `ResumeContentV1` and `CoverLetterContentV1` TypeScript types in `src/types/index.ts` per `docs/technical-spec.md#resume-and-cover-letter-content-model` |
 | Content editor | Section-based form editor components in `src/components/resumes/` and `src/components/cover-letters/` |
 | Fork lineage | Resumes list groups forks under their root. Detail page shows parent link and list of direct forks. |
-| Attachment upload | Optional PDF upload in resume editor; stored in `resume-attachments` bucket; signed URL for download |
+| Attachment upload | Optional DOCX or PDF upload in resume editor and cover letter editor; stored in `resume-attachments` and `cover-letter-attachments` buckets respectively; signed URL for download; stored path in `attachment_url` column |
 | Application wiring | Application detail page: resume selector dropdown + cover letter selector dropdown (set `resume_id` / `cover_letter_id` on application) |
 | Supabase types | Regenerate after migration |
 
@@ -296,7 +296,7 @@ From `docs/product-spec.md`:
 ### Non-Goals
 
 - AI-assisted resume writing or optimization.
-- Export to PDF (viewing/downloading the optional attached PDF is in scope; generating a PDF from the structured content is not).
+- Export or generation of a file from the structured JSON content (the attached DOCX/PDF is a user-uploaded reference copy, not generated from the JSON).
 - Cover letter linked to a specific application at fork time is optional (user may fork without linking; linking is done from the application detail page).
 
 ### Definition of Done
@@ -562,7 +562,7 @@ These items are explicitly out of scope for all phases in this roadmap. Agents m
 | Multi-user sharing or collaboration | Single-user, single-owner data model |
 | Public job board scraping or auto-import | No external data sources |
 | AI-assisted writing | Out of scope for this version |
-| PDF generation from resume content | Only optional PDF upload/download |
+| File generation from resume/cover letter JSON | Only optional DOCX/PDF upload and download; no generation from structured content |
 | Recurring calendar events | Not in the `calendar_items` schema |
 | External calendar sync (Google, iCal) | Out of scope |
 | Slack, Teams, or SMS notifications | Only email via Resend |

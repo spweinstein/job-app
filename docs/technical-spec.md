@@ -414,6 +414,7 @@ CREATE TRIGGER applications_status_changed
 | `name` | `text` | NOT NULL | — | Display name |
 | `content` | `jsonb` | NOT NULL | `'{}'::jsonb` | Versioned content; see [Resume and Cover Letter Content Model](#resume-and-cover-letter-content-model) |
 | `content_version` | `integer` | NOT NULL | `1` | Schema version of `content` JSON |
+| `attachment_url` | `text` | NULL | — | Storage path of uploaded DOCX or PDF; NULL if no file attached |
 | `parent_id` | `uuid` | NULL | — | FK → resumes(id); NULL for root |
 | `root_id` | `uuid` | NOT NULL | — | FK → resumes(id); equals `id` for root |
 | `created_at` | `timestamptz` | NOT NULL | `now()` | |
@@ -462,7 +463,7 @@ CREATE POLICY "resumes_delete_own"
 
 **Table:** `cover_letters`
 
-Schema is identical to `resumes` with `cover_letters` as the table name and all self-referencing FKs pointing to `cover_letters`. Column list, constraints, indexes, and RLS policies are identical — copy the pattern verbatim with table name substituted.
+Column list, constraints, indexes, and RLS policies are identical to `resumes` — copy the pattern verbatim with `cover_letters` substituted for `resumes` and all self-referencing FKs pointing to `cover_letters`. This includes the `attachment_url` column for optional DOCX/PDF file attachments, stored in the `cover-letter-attachments` bucket (see [File Storage](#file-storage)).
 
 The automation trigger for `application_created` fires on INSERT into `applications`, not on cover letters. Cover letters have no dedicated triggers.
 
@@ -898,10 +899,14 @@ if (!parsed.success) {
 | `updateResume` | `resumes.ts` | `updateResumeSchema` | `{ id: string }` | `/resumes/[id]` |
 | `forkResume` | `resumes.ts` | `forkResumeSchema` | `{ id: string }` | `/resumes` |
 | `deleteResume` | `resumes.ts` | `{ id: string }` | `{ id: string }` | `/resumes` |
+| `uploadResumeAttachment` | `resumes.ts` | `FormData` (file) | `{ attachmentUrl: string }` | `/resumes/[id]` |
+| `deleteResumeAttachment` | `resumes.ts` | `{ id: string }` | `{}` | `/resumes/[id]` |
 | `createCoverLetter` | `cover-letters.ts` | `createCoverLetterSchema` | `{ id: string }` | `/cover-letters` |
 | `updateCoverLetter` | `cover-letters.ts` | `updateCoverLetterSchema` | `{ id: string }` | `/cover-letters/[id]` |
 | `forkCoverLetter` | `cover-letters.ts` | `forkCoverLetterSchema` | `{ id: string }` | `/cover-letters` |
 | `deleteCoverLetter` | `cover-letters.ts` | `{ id: string }` | `{ id: string }` | `/cover-letters` |
+| `uploadCoverLetterAttachment` | `cover-letters.ts` | `FormData` (file) | `{ attachmentUrl: string }` | `/cover-letters/[id]` |
+| `deleteCoverLetterAttachment` | `cover-letters.ts` | `{ id: string }` | `{}` | `/cover-letters/[id]` |
 | `createCalendarItem` | `calendar-items.ts` | `createCalendarItemSchema` | `{ id: string }` | `/calendar` |
 | `updateCalendarItem` | `calendar-items.ts` | `updateCalendarItemSchema` | `{ id: string }` | `/calendar/[id]` |
 | `completeTask` | `calendar-items.ts` | `{ id: string }` | `{ id: string }` | `/calendar/[id]` |
@@ -979,14 +984,16 @@ Server Actions do not return HTTP status codes; they return `ActionResult<T>` ob
 | Bucket Name | Access | Purpose |
 |---|---|---|
 | `avatars` | Private | User avatar images |
-| `resume-attachments` | Private | Optional file attachments on resumes (PDF uploads) |
+| `resume-attachments` | Private | Optional DOCX or PDF file attached to a resume |
+| `cover-letter-attachments` | Private | Optional DOCX or PDF file attached to a cover letter |
 
 **Path conventions:**
 
 | Bucket | Path Pattern | Example |
 |---|---|---|
 | `avatars` | `<user_id>/avatar.<ext>` | `uuid-here/avatar.png` |
-| `resume-attachments` | `<user_id>/<resume_id>/<filename>` | `uuid-here/resume-uuid/resume.pdf` |
+| `resume-attachments` | `<user_id>/<resume_id>/<filename>` | `uuid-here/resume-uuid/resume.docx` |
+| `cover-letter-attachments` | `<user_id>/<cover_letter_id>/<filename>` | `uuid-here/cl-uuid/cover-letter.docx` |
 
 **Signed URL policy:** All files served via signed URLs with a 1-hour TTL. Generated server-side in server actions; never generated in client components.
 
@@ -995,11 +1002,12 @@ Server Actions do not return HTTP status codes; they return `ActionResult<T>` ob
 | Bucket | Max File Size | Allowed MIME Types |
 |---|---|---|
 | `avatars` | 2 MB | `image/jpeg`, `image/png` |
-| `resume-attachments` | 10 MB | `application/pdf` |
+| `resume-attachments` | 10 MB | `application/vnd.openxmlformats-officedocument.wordprocessingml.document`, `application/pdf` |
+| `cover-letter-attachments` | 10 MB | `application/vnd.openxmlformats-officedocument.wordprocessingml.document`, `application/pdf` |
 
 **Virus scanning:** Deferred. Posture: no scanning in this version. Mitigated by: signed URLs (no public access), MIME type allow-list enforced server-side, and files served only to the owning user.
 
-**Storage RLS policies:** Supabase Storage RLS is enabled on both buckets. Policy: `auth.uid()::text = (storage.foldername(name))[1]` — the first path segment must equal the authenticated user's ID.
+**Storage RLS policies:** Supabase Storage RLS is enabled on all three buckets. Policy: `auth.uid()::text = (storage.foldername(name))[1]` — the first path segment must equal the authenticated user's ID.
 
 ---
 

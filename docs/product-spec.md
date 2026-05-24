@@ -820,6 +820,12 @@ All error messages are exact strings. Client-side validation fires on blur; serv
 |---|---|---|
 | Name | Required, max 200 chars | "Resume name is required." / "Resume name must be 200 characters or fewer." |
 
+### Resume Attachment Upload
+
+| Field | Rule | Error Message |
+|---|---|---|
+| File | Optional; if uploading: max 10 MB, MIME must be DOCX or PDF | "Attachment must be a Word document (.docx) or PDF under 10 MB." |
+
 ### Fork Resume / Fork Cover Letter
 
 | Field | Rule | Error Message |
@@ -831,6 +837,12 @@ All error messages are exact strings. Client-side validation fires on blur; serv
 | Field | Rule | Error Message |
 |---|---|---|
 | Name | Required, max 200 chars | "Cover letter name is required." |
+
+### Cover Letter Attachment Upload
+
+| Field | Rule | Error Message |
+|---|---|---|
+| File | Optional; if uploading: max 10 MB, MIME must be DOCX or PDF | "Attachment must be a Word document (.docx) or PDF under 10 MB." |
 
 ### Create/Edit Calendar Item
 
