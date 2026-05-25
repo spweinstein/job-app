@@ -35,7 +35,15 @@ Steps:
   **Consequence:** <what this affects>
   ```
 
-**Step 6 — On user approval:** Write the complete plan to `docs/prompts/$ARGUMENTS.md`. The file must open with cross-doc citations per `docs/agent-guide.md#prompt-file-naming-convention`. Commit all three artifacts (`decisions.md`, `open-questions.md`, and the prompt file) with message `docs: approved plan for $ARGUMENTS`, then use AskUserQuestion:
+**Step 6 — Request approval via AskUserQuestion.** After presenting the plan, call `AskUserQuestion` with a single question:
+- **Question:** "Does this plan look good?"
+- **Options:**
+  - "Approve — write the prompt file and commit"
+  - "Request changes"
+
+Do not write the prompt file until the user selects "Approve".
+
+**Step 7 — On approval:** Write the complete plan to `docs/prompts/$ARGUMENTS.md`. The file must open with cross-doc citations per `docs/agent-guide.md#prompt-file-naming-convention`. Commit all three artifacts (`decisions.md`, `open-questions.md`, and the prompt file) with message `docs: approved plan for $ARGUMENTS`, then use AskUserQuestion:
 - question: "Plan committed to `docs/prompts/$ARGUMENTS.md`. How would you like to proceed?"
 - options:
   - label: "Continue in this session" / description: "Run /build $ARGUMENTS right now"
@@ -53,4 +61,4 @@ If "Start a new session": output:
 Rules you must follow:
 - Do not write any code. Permitted file edits: `docs/agents/claude/<branch-slug>/open-questions.md`, `docs/agents/claude/<branch-slug>/decisions.md`, and `docs/prompts/$ARGUMENTS.md` only.
 - Do not open a PR.
-- Output the plan and wait for approval before writing the prompt file.
+- Always use AskUserQuestion for approval (Step 6) and continuation (Step 7) — never ask these as plain text questions.

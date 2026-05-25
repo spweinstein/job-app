@@ -136,6 +136,14 @@ A decision is significant if it: deviates from the spec, requires a new library,
 
 ---
 
+## GitHub MCP Tool Conventions
+
+This project runs in a remote environment where the `gh` CLI is **not** available. Use `mcp__github__*` tools for all GitHub interactions.
+
+**PR body formatting:** When calling `mcp__github__create_pull_request` or `mcp__github__update_pull_request`, pass the `body` parameter as a plain multi-line string. Do **not** wrap it in shell heredoc syntax (`$(cat <<'EOF'…EOF)`). That syntax is only valid inside a Bash tool call using `gh pr create`; it has no effect in an MCP tool parameter and will appear literally in the PR description.
+
+---
+
 ## Key Conventions (summary — full list in `docs/agent-guide.md`)
 
 - All mutations are **server actions** in `src/actions/`. Never put DB calls in components.
