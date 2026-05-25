@@ -85,21 +85,17 @@ After the verdict, append every FAIL, MISSING, and BLOCKING finding (not PASSes)
 ### Closing
 
 - If **MERGEABLE**: "VERDICT: MERGEABLE. Open the PR."
-- If **BLOCKED**: Commit `open-questions.md` with message `docs: review findings for $ARGUMENTS`, then output this handoff block (substituting the real branch slug and argument):
+- If **BLOCKED**: Commit `open-questions.md` with message `docs: review findings for $ARGUMENTS`, then use AskUserQuestion:
+  - question: "Review BLOCKED — issues written to open-questions.md. Return to /build $ARGUMENTS?"
+  - options:
+    - label: "Continue in this session" / description: "Run /build $ARGUMENTS now to fix the issues"
+    - label: "Start a new session" / description: "Show me how to fix issues in a fresh session"
 
----
-Issues written to `open-questions.md`. Address them, then re-run `/review $ARGUMENTS`.
+  If "Continue in this session": output only `/build $ARGUMENTS`.
+  If "Start a new session": output:
 
-**Option A — continue in this session:**
-/build $ARGUMENTS
-
-**Option B — start a new session on branch `<branch-slug>`:**
-- **Cloud (Claude Code on the web):** Launch a new session configured for branch `<branch-slug>` and send this as the first message:
-  ```
-  /build $ARGUMENTS
-  ```
-- **Local (Claude Code CLI):** Run in your terminal, then start `claude`:
-  ```
-  git checkout <branch-slug>
-  ```
----
+  ---
+  **Start a new session on branch `<branch-slug>`:**
+  - **Cloud:** Launch a new session on branch `<branch-slug>`, first message: `/build $ARGUMENTS`
+  - **Local:** `git checkout <branch-slug>` then start `claude`
+  ---

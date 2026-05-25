@@ -7,6 +7,15 @@ Steps:
 2. Read `docs/agents/claude/<branch-slug>/open-questions.md` for any unresolved questions in scope.
 3. Produce a step-by-step plan in this order: migration → RLS → server actions → UI → tests.
 4. List every file to create or modify with a one-line description of the change.
+
+**Step 4b — Scope check:** Count the total files listed in step 4.
+- If the count exceeds 20, OR the deliverables span 3 or more clearly separable concerns (e.g., tooling + infrastructure + CI, or multiple unrelated feature tables), use AskUserQuestion before presenting the full plan:
+  - question: "This phase has [N] files across [M] concerns. Split into sub-phases?"
+  - options: "Yes — propose a split" / "No — proceed as one phase"
+  If "Yes": design the sub-phases (each with a named slug like `$ARGUMENTS-a`, `$ARGUMENTS-b`), present the split using AskUserQuestion to confirm, then — on approval — write one prompt file per sub-phase.
+  If "No": continue to the full plan.
+- If ≤ 20 files with no clearly separable concerns: skip and continue.
+
 5. Before finalizing, check for any "When to Stop and Ask" triggers from `docs/agent-guide.md#when-to-stop-and-ask`. Surface them and stop if any are present.
 
 **During planning — live writes:**
@@ -26,23 +35,19 @@ Steps:
   **Consequence:** <what this affects>
   ```
 
-**Step 6 — On user approval:** Write the complete plan to `docs/prompts/$ARGUMENTS.md` (e.g., `docs/prompts/02-companies.md`). The file must open with cross-doc citations per `docs/agent-guide.md#prompt-file-naming-convention`. Commit all three artifacts (`decisions.md`, `open-questions.md`, and the prompt file) with message `docs: approved plan for $ARGUMENTS`, then output this handoff block (substituting the real branch slug and argument):
+**Step 6 — On user approval:** Write the complete plan to `docs/prompts/$ARGUMENTS.md`. The file must open with cross-doc citations per `docs/agent-guide.md#prompt-file-naming-convention`. Commit all three artifacts (`decisions.md`, `open-questions.md`, and the prompt file) with message `docs: approved plan for $ARGUMENTS`, then use AskUserQuestion:
+- question: "Plan committed to `docs/prompts/$ARGUMENTS.md`. How would you like to proceed?"
+- options:
+  - label: "Continue in this session" / description: "Run /build $ARGUMENTS right now"
+  - label: "Start a new session" / description: "Show me how to continue in a fresh session"
+
+If "Continue in this session": output only `/build $ARGUMENTS`.
+If "Start a new session": output:
 
 ---
-Plan committed to `docs/prompts/$ARGUMENTS.md`.
-
-**Option A — continue in this session:**
-/build $ARGUMENTS
-
-**Option B — start a new session on branch `<branch-slug>`:**
-- **Cloud (Claude Code on the web):** Launch a new session configured for branch `<branch-slug>` and send this as the first message:
-  ```
-  /build $ARGUMENTS
-  ```
-- **Local (Claude Code CLI):** Run in your terminal, then start `claude`:
-  ```
-  git checkout <branch-slug>
-  ```
+**Start a new session on branch `<branch-slug>`:**
+- **Cloud:** Launch a new session on branch `<branch-slug>`, first message: `/build $ARGUMENTS`
+- **Local:** `git checkout <branch-slug>` then start `claude`
 ---
 
 Rules you must follow:
