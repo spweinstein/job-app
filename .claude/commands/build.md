@@ -33,11 +33,26 @@ On merge:
   - label: "Continue in this session" / description: "Run /review $ARGUMENTS right now"
   - label: "Start a new session" / description: "Show me how to continue in a fresh session"
 
-If "Continue in this session": output only `/review $ARGUMENTS`.
+If "Continue in this session": invoke the review skill using the Skill tool (`skill: review`, `args: $ARGUMENTS`). Do not output any other text — just invoke the skill.
 If "Start a new session": output:
 
 ---
-**Start a new session on branch `<branch-slug>`:**
-- **Cloud:** Launch a new session on branch `<branch-slug>`, first message: `/review $ARGUMENTS`
-- **Local:** `git checkout <branch-slug>` then start `claude`
+Implementation complete. All code committed to branch `<branch-slug>`.
+
+**Option A — continue in this session:**
+```
+/review $ARGUMENTS
+```
+
+**Option B — start a new session (Cloud / Claude Code on the web):**
+Launch a new session configured for branch `<branch-slug>` and send this as the first message:
+```
+/review $ARGUMENTS <branch-slug>
+```
+
+**Option C — start a new session (Local / Claude Code CLI):**
+```
+git checkout <branch-slug>
+claude
+```
 ---

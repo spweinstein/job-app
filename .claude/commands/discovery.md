@@ -25,9 +25,24 @@ If "Continue in this session": output only `/plan $ARGUMENTS`.
 If "Start a new session": output:
 
 ---
-**Start a new session on branch `<branch-slug>`:**
-- **Cloud:** Launch a new session on branch `<branch-slug>`, first message: `/plan $ARGUMENTS`
-- **Local:** `git checkout <branch-slug>` then start `claude`
+Discovery complete. Findings committed to `docs/agents/claude/<branch-slug>/open-questions.md`.
+
+**Option A — continue in this session:**
+```
+/plan $ARGUMENTS
+```
+
+**Option B — start a new session (Cloud / Claude Code on the web):**
+Launch a new session configured for branch `<branch-slug>` and send this as the first message:
+```
+/plan $ARGUMENTS <branch-slug>
+```
+
+**Option C — start a new session (Local / Claude Code CLI):**
+```
+git checkout <branch-slug>
+claude
+```
 ---
 
 Rules you must follow:

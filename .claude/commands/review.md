@@ -65,14 +65,20 @@ Report Gate 3 as **PASS** (no divergences, no automatic FAILs) or **DIVERGENCES 
 ### Gate 6 — Open questions
 
 - Read `docs/agents/claude/<branch-slug>/open-questions.md`.
-- Flag any entries not marked resolved.
-- Report each as **RESOLVED** / **BLOCKING**.
+- Flag any entries with `**Status:** BLOCKING`.
+- Report each as **RESOLVED** / **DEFERRED** / **BLOCKING**.
 
 ---
 
 ### Reconciliation
 
-If Gate 3 found divergences, address each one now. Apply the following parameters to determine the default recommendation:
+If Gate 3 found divergences, address each one now.
+
+**Step 1 — Compaction recovery:** Before asking anything, scan `docs/agents/claude/<branch-slug>/decisions.md` for entries that already record resolutions for any collected divergences (written by a prior session that was compacted mid-reconciliation). For each divergence with an existing decision entry, skip `AskUserQuestion` and apply the recorded resolution directly.
+
+**Step 2 — Dependency scan:** Before presenting each divergence individually, review the full list for functional coupling. Two divergences are coupled if accepting one forces a change to the other (e.g., approving "keep redirect in page.tsx" is incompatible with "remove login route"). Present coupled divergences together in a single `AskUserQuestion` that names the dependency and offers only resolution options that are internally consistent.
+
+**Step 3 — Resolve remaining divergences** using the following table:
 
 | Divergence type | Default recommendation |
 |---|---|
@@ -83,15 +89,17 @@ If Gate 3 found divergences, address each one now. Apply the following parameter
 | Schema column added, renamed, or removed | Code must change — migration coordination required |
 | Behavior passing Gherkin acceptance criteria but differing in implementation detail | Update spec |
 
-For each divergence, call `AskUserQuestion`:
+For each divergence (or coupled group), call `AskUserQuestion`:
 - question: "[Brief divergence description]. How should this be resolved?"
 - options (offer only the applicable ones per the table above):
   - "Fix code to match spec"
   - "Update spec to match code"
   - "Defer — record as open question"
 
+Immediately after each `AskUserQuestion` returns — before modifying any file or moving to the next divergence — append a `decisions.md` entry recording the divergence ID, the chosen resolution, and the rationale. This ensures the answer survives context compaction.
+
 **After all divergences are resolved:**
-- **"Fix code" items** → added to the BLOCKED verdict with a specific change list for `/build`.
+- **"Fix code" items** → added to the BLOCKED verdict with a specific change list for `/build`. **Never fix code within the review session.** The review is read-only for source files. Do not enter plan mode, do not run build commands, do not delete or create source files. "Fix code" items are a to-do list for the next `/build` pass — nothing more.
 - **"Update spec" items** → modify the cited spec file in place; append a `decisions.md` entry recording the change; commit with message `docs: update spec to reflect $ARGUMENTS implementation`.
 - **"Defer" items** → appended to `open-questions.md` (same format as other findings).
 
@@ -116,7 +124,8 @@ Append every FAIL, MISSING, BLOCKING, and unresolved divergence finding (not PAS
 ## <short title>
 **Source:** review / gate <N>
 **Finding:** FAIL | MISSING | BLOCKING | DIVERGENCE
-**Location:** <file:line or gate name>
+**Status:** BLOCKING | RESOLVED | DEFERRED
+**Location:** <exact file path(s) or gate name; for items requiring deletion, list every path explicitly>
 **Detail:** <rule violated, what is missing, or divergence description>
 ```
 
@@ -133,11 +142,23 @@ If spec files were modified during Reconciliation, commit them together with `op
     - label: "Continue in this session" / description: "Run /build $ARGUMENTS now to fix the issues"
     - label: "Start a new session" / description: "Show me how to fix issues in a fresh session"
 
-  If "Continue in this session": output only `/build $ARGUMENTS`.
+  If "Continue in this session": invoke the build skill using the Skill tool (`skill: build`, `args: $ARGUMENTS`). Do not output any other text — just invoke the skill.
   If "Start a new session": output:
 
-  ---
-  **Start a new session on branch `<branch-slug>`:**
-  - **Cloud:** Launch a new session on branch `<branch-slug>`, first message: `/build $ARGUMENTS`
-  - **Local:** `git checkout <branch-slug>` then start `claude`
-  ---
+**Option A — continue in this session:**
+```
+/build $ARGUMENTS
+```
+
+**Option B — start a new session (Cloud / Claude Code on the web):**
+Launch a new session configured for branch `<branch-slug>` and send this as the first message:
+```
+/build $ARGUMENTS <branch-slug>
+```
+
+**Option C — start a new session (Local / Claude Code CLI):**
+```
+git checkout <branch-slug>
+claude
+```
+---
