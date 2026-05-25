@@ -148,11 +148,13 @@ The canonical error code enum. Agents must not define codes outside this list wi
 
 | File | Purpose |
 |---|---|
-| `docs/product-spec.md` | Observable user behavior: personas, journeys, screen inventory, acceptance criteria (Gherkin), state matrices, validation rules, accessibility criteria. |
-| `docs/technical-spec.md` | Technical decisions: stack, data model, RLS policies, API surface, error contract, automations engine, observability, security, performance, testing, environments, config. |
-| `docs/roadmap.md` | Phased implementation plan: phase scope, prerequisites, deliverables, definitions of done tied to acceptance criteria. |
+| `docs/product-spec/index.md` | Personas, user journeys, screen inventory, default state pattern, open questions. |
+| `docs/product-spec/<feature>.md` | Per-feature Gherkin acceptance criteria, state matrices, and validation rules. |
+| `docs/technical-spec/index.md` | Stack pinning, repository layout, and links to all technical sections. |
+| `docs/technical-spec/<section>.md` | Thematic sections: schema, auth, api-surface, storage, content-model, automations-engine, observability, security, testing. |
+| `docs/roadmap.md` | Phased implementation plan: phase scope, reading list, prerequisites, deliverables, definitions of done. |
 | `docs/agent-guide.md` | This file. Glossary (source of truth), conventions, anti-patterns, PR rules, when to escalate, definition of done. |
-| `docs/prompts/` | Per-feature implementation prompts (populated in a subsequent step, **not** in scope for the initial four documents). |
+| `docs/prompts/` | Per-feature implementation prompts (populated in a subsequent step, **not** in scope for the initial documents). |
 
 ### Prompt File Naming Convention
 
@@ -170,8 +172,8 @@ Example: `docs/prompts/02-companies.md`
 Each prompt file must open with cross-document citations in repo-relative path format, e.g.:
 
 ```
-Implement the feature defined in `docs/product-spec.md#companies`
-against the schema in `docs/technical-spec.md#companies-table`.
+Implement the feature defined in `docs/product-spec/companies.md`
+against the schema in `docs/technical-spec/schema.md#companies`.
 Follow all conventions in `docs/agent-guide.md`.
 ```
 
@@ -241,7 +243,7 @@ Agents must never do any of the following without explicit instruction in a prom
 | Disable an ESLint rule without an inline justification comment | Rules exist for reasons. If disabling is truly necessary, add `// eslint-disable-next-line rule-name -- <reason>`. |
 | Call Supabase directly from a Client Component | Client components run in the browser. Use server actions or route handlers. Exception: reading public/anonymous data via `createBrowserClient` in a React Query hook is allowed. |
 | Put business logic in a React component | Components render UI. Business logic (status transitions, fork validation, automation evaluation) lives in `src/lib/`. |
-| Invent a new error code | Update the enum in `docs/agent-guide.md#error-codes` and `docs/technical-spec.md#error-contract` first, then open a question. |
+| Invent a new error code | Update the enum in `docs/agent-guide.md#error-codes` and `docs/technical-spec/api-surface.md#error-contract` first, then open a question. |
 | Change the database schema outside a migration file | No ad-hoc edits in the Supabase dashboard. All schema changes go through `supabase/migrations/`. |
 | Commit secrets or `.env` files | Use Vercel environment variables and `.env.local` (gitignored). |
 | Use `console.log` in committed code | Use the structured logger at `src/lib/logger.ts`. |

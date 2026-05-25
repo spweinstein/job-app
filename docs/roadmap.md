@@ -1,6 +1,6 @@
 # Implementation Roadmap
 
-All terminology defers to `docs/agent-guide.md#glossary`. Acceptance criteria references point to `docs/product-spec.md`. Schema references point to `docs/technical-spec.md`.
+All terminology defers to `docs/agent-guide.md#glossary`. Acceptance criteria references point to `docs/product-spec/`. Schema references point to `docs/technical-spec/`.
 
 Each phase anticipates a corresponding implementation prompt at `docs/prompts/<NN>-<feature-slug>.md`. Do not create those files now.
 
@@ -12,7 +12,8 @@ The following apply to every phase unless explicitly overridden:
 
 - **After every migration:** run `supabase gen types typescript --local > src/types/database.ts`.
 - **Default Definition of Done:** all cited acceptance criteria pass in the E2E suite; `tsc --noEmit` and `eslint .` exit 0; preview deploy green.
-- **State matrices:** verify all seven UI states (per `docs/product-spec.md`) for every screen introduced or modified in the phase.
+- **State matrices:** verify all UI states (per `docs/product-spec/<feature>.md`) for every screen introduced or modified in the phase.
+- **Agent context:** before starting, create `docs/agents/claude/<branch-slug>/decisions.md` and `docs/agents/claude/<branch-slug>/open-questions.md` for your branch. See `CLAUDE.md` for the entry format.
 
 ---
 
@@ -36,6 +37,8 @@ The following apply to every phase unless explicitly overridden:
 
 **Prompt file (future):** `docs/prompts/00-foundation.md`
 
+**Reading list:** `docs/technical-spec/index.md`, `docs/technical-spec/testing.md`
+
 ### Scope
 
 Repository initialization, toolchain configuration, CI pipeline, Supabase project provisioning, Vercel linkage, error reporting, and one trivial passing E2E test. No application features.
@@ -50,7 +53,7 @@ None.
 |---|---|
 | Git repository | `main` branch, `.gitignore` covering `.env*`, `node_modules`, `.next`, `supabase/.temp` |
 | `package.json` | pnpm 9, Node 22; scripts: `dev`, `build`, `start`, `lint`, `typecheck`, `test`, `test:integration`, `test:e2e` |
-| TypeScript config | `tsconfig.json` per `docs/technical-spec.md#stack-pinning` |
+| TypeScript config | `tsconfig.json` per `docs/technical-spec/index.md#stack-pinning` |
 | ESLint config | `eslint.config.mjs`: `eslint-config-next`, `@typescript-eslint/strict`, `import/order`, no warnings allowed |
 | Prettier config | `prettier.config.mjs`: 2-space indent, single quotes, trailing commas |
 | Tailwind CSS | `tailwind.config.ts` with `src/**` content paths |
@@ -61,12 +64,12 @@ None.
 | Middleware | `src/middleware.ts` with session refresh (no auth redirects yet — added in Phase 1) |
 | Error infrastructure | `src/lib/errors.ts` (AppError, ErrorCode enum), `src/lib/logger.ts` (structured JSON) |
 | Sentry | Initialized in `src/instrumentation.ts` and `src/app/layout.tsx`; DSN from env |
-| `.env.example` | All variables from `docs/technical-spec.md#configuration` documented |
+| `.env.example` | All variables from `docs/technical-spec/testing.md#configuration` documented |
 | Renovate | `renovate.json` with patch auto-merge, minor/major PR-required |
 | CI pipeline | `.github/workflows/ci.yml`: lint → typecheck → unit tests → E2E → Lighthouse CI |
 | Lighthouse CI | `lighthouserc.json` with LCP ≤ 2500 ms, CLS ≤ 0.1 |
 | Trivial E2E test | Playwright test: navigates to `/`, asserts a 200 response (or redirect to `/login`) |
-| `docs/` | All four planning documents committed |
+| `docs/` | All planning documents committed |
 
 ### Test Additions Required
 
@@ -90,6 +93,8 @@ A no-op PR (e.g., README update) runs the full CI pipeline:
 
 **Prompt file (future):** `docs/prompts/01-auth.md`
 
+**Reading list:** `docs/product-spec/auth.md`, `docs/technical-spec/schema.md#profiles`, `docs/technical-spec/auth.md`, `docs/technical-spec/api-surface.md`, `docs/technical-spec/security.md#rate-limiting`
+
 ### Scope
 
 Email/password authentication: signup, login, logout, forgot-password, reset-password. Middleware auth redirects. Profile row auto-creation trigger. No profile editing UI (that is Phase 7).
@@ -102,25 +107,25 @@ Phase 0 complete.
 
 | Deliverable | Detail |
 |---|---|
-| Migration | `profiles` table + `handle_new_user` trigger + RLS policies (per `docs/technical-spec.md#profiles-table`) |
+| Migration | `profiles` table + `handle_new_user` trigger + RLS policies (per `docs/technical-spec/schema.md#profiles`) |
 | Auth screens | `/login`, `/signup`, `/forgot-password`, `/reset-password` in `src/app/(auth)/` route group |
 | Auth layout | `src/app/(auth)/layout.tsx`: centered card, no navigation |
 | App layout | `src/app/(app)/layout.tsx`: sidebar navigation, session guard (redirect if no session) |
 | Middleware | Update `src/middleware.ts` to redirect unauthenticated requests to `/login?redirect=<path>` |
 | Server actions | `src/actions/auth.ts`: `signUp`, `signIn`, `signOut`, `sendPasswordResetEmail`, `resetPassword` |
 | Zod schemas | `src/lib/validations/auth.ts`: `signUpSchema`, `signInSchema`, `forgotPasswordSchema`, `resetPasswordSchema` |
-| Rate limiting | Login, signup, forgot-password rate limits via Upstash (per `docs/technical-spec.md#rate-limiting`) |
+| Rate limiting | Login, signup, forgot-password rate limits via Upstash (per `docs/technical-spec/security.md#rate-limiting`) |
 | Email confirmation | Supabase Auth email confirmation enabled; Supabase dashboard template configured |
-| Password reset | Full flow per `docs/technical-spec.md#auth-and-session-handling` |
+| Password reset | Full flow per `docs/technical-spec/auth.md#password-reset-flow` |
 | Redirect preservation | `/login?redirect=<path>` honored on successful login |
 
 ### Acceptance Criteria (must pass)
 
-From `docs/product-spec.md`:
-- `auth#auth--signup` — all three scenarios
-- `auth#auth--login` — all three scenarios
-- `auth#auth--forgot-password` — both scenarios
-- `auth#auth--reset-password` — all three scenarios
+From `docs/product-spec/auth.md`:
+- Signup — all three scenarios
+- Login — all three scenarios
+- Forgot Password — both scenarios
+- Reset Password — all three scenarios
 
 ### Test Additions Required
 
@@ -130,7 +135,7 @@ From `docs/product-spec.md`:
 
 ### State Matrix Coverage
 
-`/login`, `/signup`, `/forgot-password`, `/reset-password`
+`/login`, `/signup`, `/forgot-password`, `/reset-password` — see `docs/product-spec/auth.md#state-matrices`.
 
 ### Definition of Done
 
@@ -141,6 +146,8 @@ All auth acceptance criteria pass in Playwright. Middleware correctly gates all 
 ## Phase 2: Companies
 
 **Prompt file (future):** `docs/prompts/02-companies.md`
+
+**Reading list:** `docs/product-spec/companies.md`, `docs/technical-spec/schema.md#companies`, `docs/technical-spec/api-surface.md`
 
 ### Scope
 
@@ -154,21 +161,21 @@ Phase 1 complete.
 
 | Deliverable | Detail |
 |---|---|
-| Migration | `companies` table + RLS policies (per `docs/technical-spec.md#companies-table`) |
-| Server actions | `src/actions/companies.ts`: `createCompany`, `updateCompany`, `deleteCompany`, `getCompanies`, `getCompany` |
+| Migration | `companies` table + RLS policies (per `docs/technical-spec/schema.md#companies`) |
+| Server actions | `src/actions/companies.ts`: `createCompany`, `updateCompany`, `deleteCompany` |
 | Zod schemas | `src/lib/validations/companies.ts`: `createCompanySchema`, `updateCompanySchema` |
 | Pages | `/companies`, `/companies/new`, `/companies/[id]`, `/companies/[id]/edit` |
 | Components | `CompanyCard`, `CompanyForm`, `CompanyDeleteDialog`, `CompanyList` in `src/components/companies/` |
 | Search | Client-side filter on company name (no server round-trip for this scale) |
-| Application count | Company detail page shows count via `SELECT count(*) FROM applications WHERE company_id = :id` |
+| Application count | Company detail page shows count via `SELECT count(*) FROM applications WHERE company_id = :id` in the Server Component |
 
 ### Acceptance Criteria (must pass)
 
-From `docs/product-spec.md`:
-- `companies#companies--list-view` — all three scenarios
-- `companies#companies--create` — both scenarios
-- `companies#companies--edit` — success scenario
-- `companies#companies--delete` — both scenarios (with and without applications)
+From `docs/product-spec/companies.md`:
+- List View — all three scenarios
+- Create — both scenarios
+- Edit — success scenario
+- Delete — both scenarios (with and without applications)
 
 ### Test Additions Required
 
@@ -178,7 +185,7 @@ From `docs/product-spec.md`:
 
 ### State Matrix Coverage
 
-`/companies`, `/companies/[id]`
+`/companies` — see `docs/product-spec/companies.md#state-matrices`. `/companies/new`, `/companies/[id]`, `/companies/[id]/edit` use the Default State Pattern.
 
 ### Definition of Done
 
@@ -189,6 +196,8 @@ All companies acceptance criteria pass. Preview deploy shows Companies CRUD work
 ## Phase 3: Applications
 
 **Prompt file (future):** `docs/prompts/03-applications.md`
+
+**Reading list:** `docs/product-spec/applications.md`, `docs/technical-spec/schema.md#applications`, `docs/technical-spec/schema.md#automation-events`, `docs/technical-spec/api-surface.md`
 
 ### Scope
 
@@ -202,23 +211,23 @@ Phase 2 complete.
 
 | Deliverable | Detail |
 |---|---|
-| Migration | `applications` table + RLS policies + `emit_application_status_changed` trigger + `emit_application_created` trigger + `automation_events` table (needed for trigger target) (per `docs/technical-spec.md#applications-table`, `docs/technical-spec.md#automation-events-table`) |
-| Server actions | `src/actions/applications.ts`: `createApplication`, `updateApplication`, `deleteApplication`, `getApplications`, `getApplication` |
+| Migration | `applications` table + RLS policies + `emit_application_status_changed` trigger + `emit_application_created` trigger + `automation_events` table (per `docs/technical-spec/schema.md#applications` and `docs/technical-spec/schema.md#automation-events`) |
+| Server actions | `src/actions/applications.ts`: `createApplication`, `updateApplication`, `deleteApplication` |
 | Zod schemas | `src/lib/validations/applications.ts` |
 | Pages | `/applications`, `/applications/new`, `/applications/[id]`, `/applications/[id]/edit` |
-| Status selector | Dropdown or segmented control showing all status enum values; updates status via `updateApplication` action |
+| Status selector | Dropdown or segmented control showing all 9 status enum values; updates status via `updateApplication` action |
 | Filters | Status filter (multi-select), company filter (select) — both client-side |
-| Company selector | `createApplication` requires selecting an existing company from a dropdown (fetched server-side) |
+| Company selector | `createApplication` requires selecting an existing company from a dropdown (fetched in the Server Component) |
 
 **Important:** The `automation_events` table must be created in this migration even though automations are not implemented until Phase 6. The trigger functions require the target table to exist.
 
 ### Acceptance Criteria (must pass)
 
-From `docs/product-spec.md`:
-- `applications#applications--list-view` — both filter scenarios
-- `applications#applications--create` — both scenarios
-- `applications#applications--status-change` — trigger scenario
-- `applications#applications--delete` — success scenario
+From `docs/product-spec/applications.md`:
+- List View — both filter scenarios
+- Create — both scenarios
+- Status Change — trigger scenario
+- Delete — all three scenarios
 
 ### Test Additions Required
 
@@ -228,7 +237,7 @@ From `docs/product-spec.md`:
 
 ### State Matrix Coverage
 
-`/applications`, `/applications/[id]`
+`/applications` — see `docs/product-spec/applications.md#state-matrices`. `/applications/new`, `/applications/[id]`, `/applications/[id]/edit` use the Default State Pattern.
 
 ### Definition of Done
 
@@ -240,9 +249,11 @@ All applications acceptance criteria pass. Triggers write correctly to `automati
 
 **Prompt file (future):** `docs/prompts/04-resumes-cover-letters.md`
 
+**Reading list:** `docs/product-spec/resumes.md`, `docs/product-spec/cover-letters.md`, `docs/technical-spec/schema.md#resumes`, `docs/technical-spec/schema.md#cover-letters`, `docs/technical-spec/content-model.md`, `docs/technical-spec/storage.md`, `docs/technical-spec/api-surface.md`
+
 ### Scope
 
-Full CRUD for Resumes and Cover Letters, including fork creation and lineage display. Structured section editor: users can add, remove, and reorder typed sections (work experience, education, skills, certifications, custom); each section has a repeatable entry form. Content stored as structured JSON per the `ResumeContentV1` schema in `docs/technical-spec.md`. Attach resume/cover letter to application. Optional DOCX or PDF file attachment on both resumes and cover letters (reference copy alongside the structured content).
+Full CRUD for Resumes and Cover Letters, including fork creation and lineage display. Structured section editor. Content stored as structured JSON per the `ResumeContentV1` schema in `docs/technical-spec/content-model.md`. Attach resume/cover letter to application. Optional DOCX or PDF file attachment on both.
 
 ### Prerequisites
 
@@ -252,40 +263,42 @@ Phase 3 complete.
 
 | Deliverable | Detail |
 |---|---|
-| Migration | `resumes` table + `cover_letters` table + RLS policies + FK constraints (per `docs/technical-spec.md#resumes-table`, `docs/technical-spec.md#cover-letters-table`) |
-| Migration (storage) | Create `avatars`, `resume-attachments`, and `cover-letter-attachments` buckets with storage RLS policies (storage bucket creation via Supabase CLI or migration) |
-| Server actions (resumes) | `createResume`, `updateResume`, `forkResume`, `deleteResume` — reads (`getResumes`, `getResume`) are Server Component queries per the Read Pattern rule |
-| Server actions (cover letters) | `createCoverLetter`, `updateCoverLetter`, `forkCoverLetter`, `deleteCoverLetter` — reads (`getCoverLetters`, `getCoverLetter`) are Server Component queries per the Read Pattern rule |
+| Migration | `resumes` table + `cover_letters` table + RLS policies + FK constraints (per `docs/technical-spec/schema.md#resumes` and `docs/technical-spec/schema.md#cover-letters`) |
+| Migration (storage) | Create `avatars`, `resume-attachments`, and `cover-letter-attachments` buckets with storage RLS policies (per `docs/technical-spec/storage.md`) |
+| Server actions (resumes) | `createResume`, `updateResume`, `forkResume`, `deleteResume`, `uploadResumeAttachment`, `deleteResumeAttachment` — reads are Server Component queries |
+| Server actions (cover letters) | `createCoverLetter`, `updateCoverLetter`, `forkCoverLetter`, `deleteCoverLetter`, `uploadCoverLetterAttachment`, `deleteCoverLetterAttachment` — reads are Server Component queries |
 | Zod schemas | `src/lib/validations/resumes.ts`, `src/lib/validations/cover-letters.ts` |
-| Content type | `ResumeContentV1` and `CoverLetterContentV1` TypeScript types in `src/types/index.ts` per `docs/technical-spec.md#resume-and-cover-letter-content-model` |
+| Content type | `ResumeContentV1` and `CoverLetterContentV1` TypeScript types in `src/types/index.ts` per `docs/technical-spec/content-model.md` |
 | Content editor | Section-based form editor components in `src/components/resumes/` and `src/components/cover-letters/` |
 | Fork lineage | Resumes list groups forks under their root. Detail page shows parent link and list of direct forks. |
-| Attachment upload | Optional DOCX or PDF upload in resume editor and cover letter editor; stored in `resume-attachments` and `cover-letter-attachments` buckets respectively; signed URL for download; stored path in `attachment_url` column |
+| Attachment upload | Optional DOCX or PDF upload; stored in `resume-attachments` and `cover-letter-attachments` buckets; signed URL for download; stored path in `attachment_url` column |
 | Application wiring | Application detail page: resume selector dropdown + cover letter selector dropdown (set `resume_id` / `cover_letter_id` on application) |
 
 ### Acceptance Criteria (must pass)
 
-From `docs/product-spec.md`:
-- `resumes#resumes--list-view`
-- `resumes#resumes--create`
-- `resumes#resumes--fork` — both scenarios (fork creates deep copy; edit fork does not mutate source)
-- `resumes#resumes--edit` — all 4 scenarios (add section; remove non-required section; contact_info cannot be removed; reorder sections)
-- `resumes#resumes--delete` — both scenarios (cannot delete with descendants; can delete leaf)
-- Cover letter equivalents (same criteria, `cover-letters` table/routes)
+From `docs/product-spec/resumes.md`:
+- List View
+- Create
+- Fork — both scenarios (fork creates deep copy; edit fork does not mutate source)
+- Edit — all 4 scenarios (add section; remove non-required section; contact_info cannot be removed; reorder sections)
+- Delete — both scenarios (cannot delete with descendants; can delete leaf)
+
+From `docs/product-spec/cover-letters.md`:
+- List View, Create, Fork, Delete (same structure as resumes)
 
 ### Test Additions Required
 
-- Unit: `forkResume` deep-copy assertion (source content unchanged after fork + edit); cycle-prevention logic in `forkResume`; section add/remove/reorder logic; `contact_info` cannot-be-removed invariant; `summary` at-most-one invariant.
+- Unit: `forkResume` deep-copy assertion; cycle-prevention logic; section add/remove/reorder logic; `contact_info` cannot-be-removed invariant; `summary` at-most-one invariant.
 - Integration: fork resume → edit fork → assert source `content` unchanged; delete resume with fork → expect RESTRICT error → user-friendly error returned; RLS cross-user fork attempt blocked.
-- E2E: create resume → edit content → fork → edit fork → verify source unchanged; add section → reorder → remove non-required section → verify order; create cover letter → fork → link to application.
+- E2E: create resume → edit content → fork → edit fork → verify source unchanged; add section → reorder → remove non-required section; create cover letter → fork → link to application.
 
 ### State Matrix Coverage
 
-`/resumes`, `/resumes/[id]`, `/cover-letters`, `/cover-letters/[id]`
+`/resumes`, `/resumes/[id]` — see `docs/product-spec/resumes.md#state-matrices`. `/resumes/new`, `/resumes/[id]/edit`, `/resumes/[id]/fork` use the Default State Pattern. Same for cover-letters equivalents.
 
 ### Definition of Done
 
-All resumes and cover letters acceptance criteria pass, including section editor (add/remove/reorder) and section invariants. Fork semantics tested and passing.
+All resumes and cover letters acceptance criteria pass, including section editor and fork semantics.
 
 ---
 
@@ -293,9 +306,11 @@ All resumes and cover letters acceptance criteria pass, including section editor
 
 **Prompt file (future):** `docs/prompts/05-calendar-items.md`
 
+**Reading list:** `docs/product-spec/calendar-items.md`, `docs/technical-spec/schema.md#calendar-items`, `docs/technical-spec/api-surface.md`
+
 ### Scope
 
-Full CRUD for Calendar Items across all four kinds (task, event, meeting, interview). Month and list views. Task completion. Filter by kind. Link to application. Postgres trigger for `interview_scheduled` events.
+Full CRUD for Calendar Items across all four kinds. Month and list views. Task completion. Filter by kind. Filter by application. Postgres trigger for `interview_scheduled` events.
 
 ### Prerequisites
 
@@ -305,33 +320,33 @@ Phase 3 complete. (Phase 4 is not a prerequisite but should be merged first if r
 
 | Deliverable | Detail |
 |---|---|
-| Migration | `calendar_items` table + RLS policies + CHECK constraints + `emit_interview_scheduled` trigger (per `docs/technical-spec.md#calendar-items-table`) |
-| Server actions | `createCalendarItem`, `updateCalendarItem`, `completeTask`, `deleteCalendarItem`, `getCalendarItems` |
+| Migration | `calendar_items` table + RLS policies + CHECK constraints + `emit_interview_scheduled` trigger (per `docs/technical-spec/schema.md#calendar-items`) |
+| Server actions | `createCalendarItem`, `updateCalendarItem`, `completeTask`, `deleteCalendarItem` — reads are Server Component queries |
 | Zod schemas | `src/lib/validations/calendar-items.ts` |
 | Pages | `/calendar`, `/calendar/new`, `/calendar/[id]`, `/calendar/[id]/edit` |
-| Month view | React calendar grid component showing items on their `start_at` date (for timed kinds) or `due_at` date (for tasks). Use `date-fns` for date math. |
-| List view | Chronological list as alternative to month view; toggle between views persisted in URL param `?view=list`. |
-| Kind filter | Filter by kind (multi-select); updates URL param `?kind=interview,meeting` (etc.) |
-| Application filter | Dropdown to filter calendar items by linked application; updates URL param `?applicationId=<uuid>`; shows only items where `application_id` matches |
+| Month view | React calendar grid showing items on their `start_at` date (timed kinds) or `due_at` date (tasks). Use `date-fns` for date math. |
+| List view | Chronological list as alternative to month view; toggle persisted in URL param `?view=list`. |
+| Kind filter | Filter by kind (multi-select); updates URL param `?kind=interview,meeting` |
+| Application filter | Dropdown to filter calendar items by linked application; updates URL param `?applicationId=<uuid>` |
 | Task complete | Inline "Mark complete" button on task card; calls `completeTask` action. |
-| Application link | Interview create/edit form requires selecting an application (dropdown of user's applications). |
+| Application link | Interview create/edit form requires selecting an application (dropdown fetched in the Server Component). |
 
 ### Acceptance Criteria (must pass)
 
-From `docs/product-spec.md`:
-- `calendar-items#calendar-items--list-and-views` — all three scenarios (month view, filter by kind, filter by application)
-- `calendar-items#calendar-items--create` — all three scenarios (task, interview-with-application, interview-without-application)
-- `calendar-items#calendar-items--complete-task`
+From `docs/product-spec/calendar-items.md`:
+- List and Views — all three scenarios (month view, filter by kind, filter by application)
+- Create — all three scenarios (task, interview-with-application, interview-without-application)
+- Complete Task
 
 ### Test Additions Required
 
-- Unit: `createCalendarItemSchema` — interview without application_id rejected; end_at before start_at rejected; task without due_at allowed.
-- Integration: create interview → `automation_events` row written; interview CHECK constraint enforced (application_id required); end_after_start CHECK enforced.
+- Unit: `createCalendarItemSchema` — interview without application_id rejected; end_at before or equal to start_at rejected; task without due_at allowed.
+- Integration: create interview → `automation_events` row written; interview CHECK constraint enforced; `end_at > start_at` CHECK enforced.
 - E2E: create task → mark complete; create interview linked to application → appears on calendar; filter by kind = 'interview'; filter by application.
 
 ### State Matrix Coverage
 
-`/calendar`, `/calendar/new`, `/calendar/[id]`, `/calendar/[id]/edit`
+`/calendar` — see `docs/product-spec/calendar-items.md#state-matrices`. `/calendar/new`, `/calendar/[id]`, `/calendar/[id]/edit` have explicit matrices in that file.
 
 ### Definition of Done
 
@@ -342,6 +357,8 @@ All calendar items acceptance criteria pass. `interview_scheduled` trigger write
 ## Phase 6: Automations
 
 **Prompt file (future):** `docs/prompts/06-automations.md`
+
+**Reading list:** `docs/product-spec/automations.md`, `docs/technical-spec/schema.md#automations`, `docs/technical-spec/schema.md#automation-events`, `docs/technical-spec/schema.md#automation-action-logs`, `docs/technical-spec/automations-engine.md`, `docs/technical-spec/api-surface.md`
 
 ### Scope
 
@@ -355,27 +372,27 @@ Phases 1–5 complete. (All trigger-emitting tables and their triggers must exis
 
 | Deliverable | Detail |
 |---|---|
-| Migration | `automations` table + `automation_action_logs` table + RLS policies (per `docs/technical-spec.md#automations-table`, `docs/technical-spec.md#automation-action-logs-table`). `automation_events` table already created in Phase 3. |
-| Server actions | `createAutomation`, `updateAutomation`, `toggleAutomation`, `deleteAutomation`, `getAutomations`, `getAutomation`, `getAutomationActionLogs` |
+| Migration | `automations` table + `automation_action_logs` table + RLS policies (per `docs/technical-spec/schema.md#automations` and `docs/technical-spec/schema.md#automation-action-logs`). `automation_events` table already created in Phase 3. |
+| Server actions | `createAutomation`, `updateAutomation`, `toggleAutomation`, `deleteAutomation` — reads are Server Component queries |
 | Zod schemas | `src/lib/validations/automations.ts` — validates `trigger_config` and `action_config` shapes per trigger/action type |
 | Pages | `/automations`, `/automations/new`, `/automations/[id]`, `/automations/[id]/edit` |
-| Execution history | `/automations/[id]` shows `automation_action_logs` rows in reverse chronological order |
-| Edge Function | `supabase/functions/process-automation-events/index.ts` per `docs/technical-spec.md#automations-engine` |
-| Cron (task-due-soon) | Separate Edge Function or cron handler within `process-automation-events` that polls `calendar_items` every 15 minutes |
+| Execution history | `/automations/[id]` Server Component reads `automation_action_logs` rows in reverse chronological order |
+| Edge Function | `supabase/functions/process-automation-events/index.ts` per `docs/technical-spec/automations-engine.md` |
+| Cron (task-due-soon) | Cron handler within `process-automation-events` that polls `calendar_items` every 15 minutes |
 | Cron (event processing) | Supabase cron job invoking `process-automation-events` every 30 seconds (in `supabase/config.toml`) |
 | Resend integration | `RESEND_API_KEY` wired in Edge Function env; `send_email` action sends to `auth.users.email` |
 | Webhook route | `src/app/api/webhooks/resend/route.ts`: receives delivery status events; updates `automation_action_logs` |
-| Template substitution | Variables per `docs/technical-spec.md#automations-engine` |
+| Template substitution | Variables per `docs/technical-spec/automations-engine.md#template-variable-substitution` |
 | Retry logic | 3 attempts, backoff 30s/5m/30m, dead-letter after 3 failures |
 | Idempotency | Check `automation_action_logs` for existing `succeeded` row before executing |
 
 ### Acceptance Criteria (must pass)
 
-From `docs/product-spec.md`:
-- `automations#automations--list` — toggle scenario
-- `automations#automations--create` — both scenarios
-- `automations#automations--execution-history`
-- User journey 3 (setup automation → observe it fire within 60 seconds)
+From `docs/product-spec/automations.md`:
+- List — toggle scenario
+- Create — both scenarios
+- Execution History
+- User journey 3 (setup automation → observe it fire within 60 seconds) from `docs/product-spec/index.md#journey-3`
 
 ### Test Additions Required
 
@@ -387,7 +404,7 @@ From `docs/product-spec.md`:
 
 ### State Matrix Coverage
 
-`/automations`, `/automations/new`, `/automations/[id]`, `/automations/[id]/edit`
+`/automations` — see `docs/product-spec/automations.md#state-matrices`. `/automations/new`, `/automations/[id]`, `/automations/[id]/edit` have explicit matrices in that file.
 
 ### Definition of Done
 
@@ -399,20 +416,22 @@ All automations acceptance criteria pass. User journey 3 passes end-to-end in Pl
 
 **Prompt file (future):** `docs/prompts/07-profile.md`
 
+**Reading list:** `docs/product-spec/profile.md`, `docs/technical-spec/schema.md#profiles`, `docs/technical-spec/storage.md`, `docs/technical-spec/api-surface.md`
+
 ### Scope
 
 Profile edit page (display name, avatar upload). Change password page. Notification preferences (email enabled toggle). Avatar stored in Supabase Storage.
 
 ### Prerequisites
 
-Phase 1 complete; Phase 4 must have merged (avatars bucket is created there). If Phase 4 has not yet merged at the time this phase begins, create the `avatars` bucket migration here instead.
+Phase 1 complete. The `avatars` storage bucket is created in Phase 4. If this phase begins before Phase 4 has merged, create the `avatars` bucket migration here and coordinate with the Phase 4 branch to avoid a duplicate migration.
 
 ### Deliverables
 
 | Deliverable | Detail |
 |---|---|
-| Migration | Storage bucket `avatars` RLS policy (if not already created in Phase 4). No new tables — `profiles` table created in Phase 1. |
-| Server actions | `updateProfile`, `uploadAvatar`, `changePassword` (per `docs/technical-spec.md#api-surface`) |
+| Migration | No new tables — `profiles` table created in Phase 1. `avatars` bucket created in Phase 4 (see Prerequisites). |
+| Server actions | `updateProfile`, `uploadAvatar`, `changePassword` (per `docs/technical-spec/api-surface.md#action-inventory`) |
 | Zod schemas | `src/lib/validations/profile.ts` |
 | Pages | `/profile`, `/profile/change-password` |
 | Avatar upload | Client-side file input → `uploadAvatar` server action → signed URL → displayed in profile page and nav |
@@ -420,9 +439,9 @@ Phase 1 complete; Phase 4 must have merged (avatars bucket is created there). If
 
 ### Acceptance Criteria (must pass)
 
-From `docs/product-spec.md`:
-- `profile#profile--edit` — both scenarios (display name, avatar upload)
-- `profile#profile--change-password` — both scenarios
+From `docs/product-spec/profile.md`:
+- Edit — all four scenarios (display name, avatar upload, disable notifications, re-enable notifications)
+- Change Password — both scenarios
 
 ### Test Additions Required
 
@@ -432,7 +451,7 @@ From `docs/product-spec.md`:
 
 ### State Matrix Coverage
 
-`/profile`, `/profile/change-password`
+`/profile` — see `docs/product-spec/profile.md#state-matrices`. `/profile/change-password` uses the Default State Pattern.
 
 ### Definition of Done
 
@@ -443,6 +462,8 @@ All profile acceptance criteria pass. Avatar upload/display works. Notification 
 ## Phase 8: Dashboard
 
 **Prompt file (future):** `docs/prompts/08-dashboard.md`
+
+**Reading list:** `docs/product-spec/dashboard.md`, `docs/product-spec/index.md#journey-1`, `docs/technical-spec/schema.md#applications`, `docs/technical-spec/api-surface.md#read-pattern`
 
 ### Scope
 
@@ -457,25 +478,25 @@ Phases 1–7 complete.
 | Deliverable | Detail |
 |---|---|
 | Page | `/dashboard` as the post-login landing page |
-| Recent applications widget | Fetches 5 most recently updated applications; shows role title, company, status chip |
-| Upcoming calendar items widget | Fetches calendar items with `start_at` or `due_at` in the next 7 days; shows title, kind, date |
+| Recent applications widget | Server Component reads 5 most recently updated applications; shows role title, company, status chip |
+| Upcoming calendar items widget | Server Component reads calendar items with `start_at` or `due_at` in the next 7 days |
 | Automations count widget | Shows count of enabled automations |
-| Funnel chart | Bar chart with one bar per application status (all 9 statuses shown); count derived from a single `SELECT status, count(*) GROUP BY status` aggregation query; clicking a bar navigates to `/applications?status=<status>`; hidden when user has zero applications |
-| Funnel CTA card | Shown in the funnel chart area when user has no applications; wide card with distinct background color and rounded corners; prompts user to log first application; links to `/applications/new` |
+| Funnel chart | Bar chart with one bar per application status (all 9 statuses shown); count derived from `SELECT status, count(*) FROM applications WHERE user_id = $1 GROUP BY status` in the Server Component; clicking a bar navigates to `/applications?status=<status>`; hidden when user has zero applications |
+| Funnel CTA card | Shown when user has no applications; wide card with distinct background color and rounded corners; links to `/applications/new` |
 | Quick-add | "Add application" button linking to `/applications/new` |
-| Empty state | Shown when user has no applications and no calendar items: "Welcome! Start by adding a company." |
 
-### Acceptance Criteria
+### Acceptance Criteria (must pass)
 
-- `docs/product-spec.md#dashboard--funnel-chart` — all 3 scenarios (correct counts per status; click bar navigates to filtered list; CTA card shown when no applications).
+From `docs/product-spec/dashboard.md`:
+- Funnel Chart — all 3 scenarios (correct counts per status; click bar navigates to filtered list; CTA card shown when no applications)
 
 ### Test Additions Required
 
-- E2E: new user sees CTA card in funnel area and empty messages in other widgets; user with data sees recent applications, upcoming items, and funnel chart with correct per-status counts; clicking a funnel bar navigates to `/applications?status=<status>`.
+- E2E: new user sees CTA card in funnel area and empty messages in other widgets; user with data sees funnel chart with correct per-status counts; clicking a funnel bar navigates to `/applications?status=<status>`.
 
 ### Definition of Done
 
-Dashboard renders correctly for new and existing users. New user sees CTA card in funnel area. Existing user sees funnel chart with all 9 statuses and correct counts; bar click navigates to filtered list.
+Dashboard renders correctly for new and existing users. Funnel chart shows all 9 statuses; bar click navigates to filtered list. New user sees CTA card.
 
 ---
 
@@ -501,7 +522,7 @@ Phase 0 (Foundation)
 | Parallel Pair | Condition |
 |---|---|
 | Phase 4 + Phase 5 | Both depend on Phase 3. No schema overlap. Can be developed concurrently on separate branches. |
-| Phase 6 + Phase 7 | Phase 7 (Profile) depends only on Phase 1. Phase 6 (Automations) depends on Phases 1–5. Profile can be built concurrently while Automations is being developed, as long as the `avatars` bucket is created in Phase 4 before Phase 7 merges. |
+| Phase 6 + Phase 7 | Phase 7 (Profile) depends only on Phase 1. Phase 6 (Automations) depends on Phases 1–5. Profile can be built concurrently while Automations is being developed; coordinate on the `avatars` bucket if Phase 4 has not yet merged. |
 
 **Merging order when parallel branches complete:** Always merge the lower-numbered phase first to avoid migration conflicts. If Phase 5 finishes before Phase 4, hold Phase 5's PR open until Phase 4 merges.
 

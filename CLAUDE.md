@@ -8,18 +8,18 @@ A single-user job application tracker. Stack: Next.js 15 App Router, TypeScript 
 
 ## Documentation Map
 
-Read these before writing any code. Each is authoritative for its domain.
-
 | File | Read when |
 |---|---|
 | `docs/agent-guide.md` | **Always.** Glossary (field names, enums, error codes), coding conventions, Do-Not-Do list, PR checklist, Definition of Done. |
-| `docs/technical-spec.md` | Schema, RLS policies, API surface (server actions), error contract, storage, automations engine, testing strategy, configuration. |
-| `docs/product-spec.md` | User journeys, Gherkin acceptance criteria, state matrices, validation rules with exact error strings, accessibility criteria. |
-| `docs/roadmap.md` | Phase scope, prerequisites, deliverables, acceptance criteria to cite, test additions required. |
-| `docs/discovery.md` | Background reading for the project owner (not agents). |
+| `docs/technical-spec/index.md` | Start here for technical context; links to each thematic section. |
+| `docs/technical-spec/<section>.md` | Read the specific section(s) relevant to the current phase (see Reading List in each roadmap phase). |
+| `docs/product-spec/index.md` | Start here for product context; personas, user journeys, screen inventory, default state pattern. |
+| `docs/product-spec/<feature>.md` | Read the feature file for the phase being implemented (Gherkin + state matrices + validation rules). |
+| `docs/roadmap.md` | Phase scope, prerequisites, deliverables, reading list, acceptance criteria to cite, test additions required. |
 | `docs/prompts/<NN>-<slug>.md` | Per-feature implementation prompt. Start here when implementing a phase. |
-| `docs/agents/decisions.md` | Append significant architectural decisions made during implementation. |
-| `docs/agents/open-questions.md` | Log unresolved questions before stopping; clear them when resolved. |
+| `docs/agents/decisions.md` | Global history of significant decisions (promoted from per-branch files on merge). Read for context; do not append directly. |
+| `docs/agents/claude/<branch-slug>/decisions.md` | Your per-branch working decision log. Append here during implementation. |
+| `docs/agents/claude/<branch-slug>/open-questions.md` | Your per-branch live question list. |
 
 ---
 
@@ -40,7 +40,7 @@ Rules:
 **Purpose:** Design an implementation strategy for a feature or fix. No code changes.
 
 Rules:
-- Read `docs/agent-guide.md`, the relevant roadmap phase, and the relevant technical-spec sections.
+- Read `docs/agent-guide.md`, the relevant roadmap phase, and the relevant spec sections listed in the phase's Reading List.
 - Produce a step-by-step plan: migration → RLS → server actions → UI → tests.
 - Identify every file to create or modify.
 - Stop and surface any "When to Stop and Ask" trigger (`docs/agent-guide.md#when-to-stop-and-ask`) before proceeding.
@@ -56,15 +56,27 @@ Rules:
 - After every migration: `supabase gen types typescript --local > src/types/database.ts`.
 - Verify DoD before opening a PR: `tsc --noEmit`, `eslint .`, `vitest run`, `playwright test`.
 - Complete the PR checklist from `docs/agent-guide.md#pr-conventions` fully.
-- Append any significant decisions to `docs/agents/decisions.md`.
-- Log any unresolved questions to `docs/agents/open-questions.md`.
+
+**Decision Gate — stop and surface to the user before proceeding when the implementation requires:**
+- A package not already in `package.json`
+- Adding, removing, or renaming a database column or table
+- Adding, removing, or renaming a server action, or changing its input/output shape
+- Changing observable user behavior (new UI state, changed error message text, different navigation flow)
+
+This is in addition to the existing "When to Stop and Ask" triggers in `docs/agent-guide.md#when-to-stop-and-ask`.
+
+**After the user approves a decision:**
+1. Update the relevant spec file(s) (`docs/technical-spec/<section>.md` and/or `docs/product-spec/<feature>.md`) in the same commit as the code change.
+2. Append an entry to `docs/agents/claude/<branch-slug>/decisions.md`.
+
+**On merge:** copy all decision entries from `docs/agents/claude/<branch-slug>/decisions.md` into `docs/agents/decisions.md` (global history) as part of the merge commit.
 
 ### `/audit`
 **Purpose:** Review the current branch against the spec; produce a compliance report.
 
 Rules:
 - Diff the branch against `main`.
-- For each changed file, check it against the relevant section of `docs/agent-guide.md`, `docs/technical-spec.md`, and `docs/product-spec.md`.
+- For each changed file, check it against the relevant section of `docs/agent-guide.md`, `docs/technical-spec/`, and `docs/product-spec/`.
 - Check every item in the PR checklist (`docs/agent-guide.md#pr-conventions`).
 - Report findings as: PASS / FAIL / NEEDS REVIEW, with file:line references.
 - Do not edit code. Output the report only.
@@ -73,9 +85,9 @@ Rules:
 
 ## Agent Context Store (`docs/agents/`)
 
-Agents must maintain two shared files across sessions:
+Each agent session operates on its own branch. All context files are scoped to that branch to avoid concurrent-write conflicts.
 
-**`docs/agents/decisions.md`** — Append-only log. When you make a significant choice (schema change, library selection, deviation from the spec, conflict resolution), add an entry:
+**`docs/agents/claude/<branch-slug>/decisions.md`** — Per-branch working log. Append an entry whenever you make a significant decision:
 ```
 ## YYYY-MM-DD — <short title>
 **Context:** <why this came up>
@@ -83,7 +95,11 @@ Agents must maintain two shared files across sessions:
 **Consequence:** <what this affects>
 ```
 
-**`docs/agents/open-questions.md`** — Live list. Add an entry whenever you stop because of a "When to Stop and Ask" trigger. Remove the entry when the question is resolved (note the resolution inline before removing).
+A decision is significant if it: deviates from the spec, requires a new library, changes the schema or API surface, or resolves a "When to Stop and Ask" trigger.
+
+**`docs/agents/claude/<branch-slug>/open-questions.md`** — Per-branch live list. Add an entry whenever you stop because of a "When to Stop and Ask" or Decision Gate trigger. Before removing a resolved entry, create a corresponding `decisions.md` entry if the resolution has spec impact.
+
+**`docs/agents/decisions.md`** — Global history. Read this for context on prior decisions. Do not append directly during implementation; entries are promoted here on merge.
 
 ---
 
@@ -98,19 +114,3 @@ Agents must maintain two shared files across sessions:
 - RLS policies required for every new table.
 - Migrations only in `supabase/migrations/`. Never edit the schema in the dashboard.
 - Never commit `.env` files or secrets.
-
----
-
-## Phase Status
-
-| Phase | Name | Status |
-|---|---|---|
-| 0 | Foundation | Not started |
-| 1 | Auth | Not started |
-| 2 | Companies | Not started |
-| 3 | Applications | Not started |
-| 4 | Resumes & Cover Letters | Not started |
-| 5 | Calendar Items | Not started |
-| 6 | Automations | Not started |
-| 7 | Profile | Not started |
-| 8 | Dashboard | Not started |
