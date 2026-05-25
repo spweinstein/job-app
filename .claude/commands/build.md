@@ -5,6 +5,7 @@ Before writing any code:
 2. Read the relevant prompt file at `docs/prompts/<NN>-<slug>.md`.
 3. Read the relevant spec files listed in the phase's **Reading List** in `docs/roadmap.md`.
 4. Check `docs/agents/claude/<branch-slug>/open-questions.md` for any blockers.
+5. Read `docs/agents/claude/<branch-slug>/decisions.md` for any decisions recorded in prior phases.
 
 During implementation — **Decision Gate:** stop and surface to the user before proceeding if the implementation requires any of:
 - A package not already in `package.json`
@@ -26,4 +27,21 @@ Coding rules (no exceptions):
 On merge:
 - Copy all entries from `docs/agents/claude/<branch-slug>/decisions.md` into `docs/agents/decisions.md` (global history) as part of the merge commit.
 
-**Closing:** After all code is committed, tell the user: "Implementation complete. Start a new conversation and run `/review $ARGUMENTS` to run the pre-merge gate."
+**Closing:** After all code is committed, output this handoff block (substituting the real branch slug and argument):
+
+---
+Implementation complete. All code committed to branch `<branch-slug>`.
+
+**Option A — continue in this session:**
+/review $ARGUMENTS
+
+**Option B — start a new session on branch `<branch-slug>`:**
+- **Cloud (Claude Code on the web):** Launch a new session configured for branch `<branch-slug>` and send this as the first message:
+  ```
+  /review $ARGUMENTS
+  ```
+- **Local (Claude Code CLI):** Run in your terminal, then start `claude`:
+  ```
+  git checkout <branch-slug>
+  ```
+---

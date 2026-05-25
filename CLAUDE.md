@@ -25,28 +25,30 @@ A single-user job application tracker. Stack: Next.js 15 App Router, TypeScript 
 
 ## Conversation-Splitting Philosophy
 
-Each slash command is designed to run in its own Claude Code session. This is intentional: splitting tasks across conversations preserves context budget and keeps each agent focused on a single responsibility. The file system is the handoff mechanism — every command commits its outputs before it ends, so the next conversation picks up from a clean, known state.
+Each slash command can run in its own Claude Code session or chain directly into the next one in the same session. The file system is the handoff mechanism — every command commits its outputs before it ends, so whether you continue or split, the next command picks up from a clean, known state.
+
+Each command's closing outputs a two-option handoff block: **Option A** is a clickable slash command to continue in the current session; **Option B** provides copy-pasteable instructions for starting a fresh session. Choose based on how much context the conversation has consumed.
 
 ### Standard conversation sequence for a phase
 
-1. `/discovery <NN>-<slug>` — Explore and record unknowns. Commits blockers to `open-questions.md`. → **Start a new conversation.**
-2. `/plan <NN>-<slug>` — Design and record decisions. Commits the prompt file to `docs/prompts/<NN>-<slug>.md`. → **Start a new conversation.**
-3. `/build <NN>-<slug>` — Implement. Commits code and context files. → **Start a new conversation.**
-4. `/review <NN>-<slug>` — Six-gate pre-merge check. If BLOCKED, commits FAILs to `open-questions.md`. → **Start a new conversation for the repair pass** (back to step 3).
+1. `/discovery <NN>-<slug>` — Explore and record unknowns. Commits blockers to `open-questions.md`.
+2. `/plan <NN>-<slug>` — Design and record decisions. Commits the prompt file to `docs/prompts/<NN>-<slug>.md`.
+3. `/build <NN>-<slug>` — Implement. Commits code and context files.
+4. `/review <NN>-<slug>` — Six-gate pre-merge check. If BLOCKED, commits FAILs to `open-questions.md` (back to step 3).
 
-### When to recommend starting a new conversation
+### When to split into a new session
 
-Recommend a new conversation (and commit all context files first) when:
-- You have just completed one of the four modes above.
-- The conversation is approaching context limits (prior messages are being summarized aggressively or keeping multiple spec files in view simultaneously becomes difficult).
-- You are switching from one mode to another mid-session (e.g., a plan question arises during a build).
+A new session is never mandatory — it is a tool for managing context budget. Commit all context files before splitting so the next session has full fidelity.
+
+Split when:
+- The conversation is approaching context limits (prior messages are being summarized aggressively, or keeping multiple spec files in view simultaneously becomes difficult).
+- You are switching from one mode to another mid-session (e.g., a plan question arises during a build) and the context is already large.
 
 ### Context snapshot before handing off
 
-Before ending any conversation that produces output, ensure:
+Before ending any session that produces output, ensure:
 1. All context files (`decisions.md`, `open-questions.md`, prompt file if applicable) are committed and pushed to the feature branch.
 2. The branch is up to date with any remote changes.
-3. You have told the user exactly which command to run next in the new conversation.
 
 The next agent starts fresh but has full fidelity because everything it needs lives in committed files — not in conversation history.
 

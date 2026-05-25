@@ -15,7 +15,24 @@ Steps:
 **Blocks:** <what it prevents>
 ```
 
-**Closing:** Commit the context files with message `docs: discovery findings for $ARGUMENTS`, then tell the user: "Discovery complete. Findings committed to `open-questions.md`. Start a new conversation and run `/plan $ARGUMENTS` to continue."
+**Closing:** Commit the context files with message `docs: discovery findings for $ARGUMENTS`, then output this handoff block (substituting the real branch slug and argument):
+
+---
+Discovery complete. Findings committed to `docs/agents/claude/<branch-slug>/open-questions.md`.
+
+**Option A — continue in this session:**
+/plan $ARGUMENTS
+
+**Option B — start a new session on branch `<branch-slug>`:**
+- **Cloud (Claude Code on the web):** Launch a new session configured for branch `<branch-slug>` and send this as the first message:
+  ```
+  /plan $ARGUMENTS
+  ```
+- **Local (Claude Code CLI):** Run in your terminal, then start `claude`:
+  ```
+  git checkout <branch-slug>
+  ```
+---
 
 Rules you must follow:
 - Do not edit any source or spec files. Permitted writes: `docs/agents/claude/<branch-slug>/decisions.md` and `docs/agents/claude/<branch-slug>/open-questions.md` only.

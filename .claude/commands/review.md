@@ -85,4 +85,21 @@ After the verdict, append every FAIL, MISSING, and BLOCKING finding (not PASSes)
 ### Closing
 
 - If **MERGEABLE**: "VERDICT: MERGEABLE. Open the PR."
-- If **BLOCKED**: Commit `open-questions.md` with message `docs: review findings for $ARGUMENTS`, then tell the user: "Issues written to `open-questions.md`. Start a new conversation and run `/build $ARGUMENTS` to address them, then re-run `/review $ARGUMENTS`."
+- If **BLOCKED**: Commit `open-questions.md` with message `docs: review findings for $ARGUMENTS`, then output this handoff block (substituting the real branch slug and argument):
+
+---
+Issues written to `open-questions.md`. Address them, then re-run `/review $ARGUMENTS`.
+
+**Option A — continue in this session:**
+/build $ARGUMENTS
+
+**Option B — start a new session on branch `<branch-slug>`:**
+- **Cloud (Claude Code on the web):** Launch a new session configured for branch `<branch-slug>` and send this as the first message:
+  ```
+  /build $ARGUMENTS
+  ```
+- **Local (Claude Code CLI):** Run in your terminal, then start `claude`:
+  ```
+  git checkout <branch-slug>
+  ```
+---
