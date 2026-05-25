@@ -33,15 +33,19 @@ On merge:
 Implementation complete. All code committed to branch `<branch-slug>`.
 
 **Option A — continue in this session:**
+```
 /review $ARGUMENTS
+```
 
-**Option B — start a new session on branch `<branch-slug>`:**
-- **Cloud (Claude Code on the web):** Launch a new session configured for branch `<branch-slug>` and send this as the first message:
-  ```
-  /review $ARGUMENTS
-  ```
-- **Local (Claude Code CLI):** Run in your terminal, then start `claude`:
-  ```
-  git checkout <branch-slug>
-  ```
+**Option B — start a new session (Cloud / Claude Code on the web):**
+Launch a new session configured for branch `<branch-slug>` and send this as the first message:
+```
+/review $ARGUMENTS
+```
+
+**Option C — start a new session (Local / Claude Code CLI):**
+```
+git checkout <branch-slug>
+claude
+```
 ---
