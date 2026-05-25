@@ -135,7 +135,35 @@ If spec files were modified during Reconciliation, commit them together with `op
 
 ### Closing
 
-- If **MERGEABLE**: "VERDICT: MERGEABLE. Open the PR."
+- If **MERGEABLE**: Output `VERDICT: MERGEABLE.` then use `AskUserQuestion`:
+  - question: "All gates pass. Proceed to /ship $ARGUMENTS?"
+  - options:
+    - label: "Continue in this session" / description: "Run /ship $ARGUMENTS right now"
+    - label: "Start a new session" / description: "Show me how to ship in a fresh session"
+
+  If "Continue in this session": invoke the ship skill using the Skill tool (`skill: ship`, `args: $ARGUMENTS`). Do not output any other text — just invoke the skill.
+  If "Start a new session": output:
+
+---
+VERDICT: MERGEABLE. Ready to ship.
+
+**Option A — continue in this session:**
+```
+/ship $ARGUMENTS
+```
+
+**Option B — start a new session (Cloud / Claude Code on the web):**
+Launch a new session configured for branch `<branch-slug>` and send this as the first message:
+```
+/ship $ARGUMENTS <branch-slug>
+```
+
+**Option C — start a new session (Local / Claude Code CLI):**
+```
+git checkout <branch-slug>
+claude
+```
+---
 - If **BLOCKED**: Commit findings with message `docs: review findings for $ARGUMENTS`, then use AskUserQuestion:
   - question: "Review BLOCKED — issues written to open-questions.md. Return to /build $ARGUMENTS?"
   - options:
