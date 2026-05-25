@@ -129,13 +129,13 @@ The `ResumeContentV1.sections[].type` field is restricted to this closed set (de
 
 ### Error Codes
 
-The canonical error code enum. Agents must not define codes outside this list without a spec change (see `docs/technical-spec.md#error-contract`).
+The canonical error code enum. Agents must not define codes outside this list without a spec change (see `docs/technical-spec/api-surface.md#error-contract`).
 
 | Code | HTTP Status | Meaning |
 |---|---|---|
 | `UNAUTHENTICATED` | 401 | No valid session. |
 | `FORBIDDEN` | 403 | Session valid but user does not own the resource. |
-| `NOT_FOUND` | 404 | Resource does not exist (or user cannot see it). |
+| `NOT_FOUND` | 404 | Resource does not exist and the caller is known to have access to the parent context. **For resource ownership checks on authenticated user data, use `FORBIDDEN` instead** (see `docs/technical-spec/auth.md#forbidden-vs-not_found`). |
 | `VALIDATION_ERROR` | 422 | Input failed Zod schema validation. |
 | `CONFLICT` | 409 | Unique constraint or business rule violation. |
 | `RATE_LIMITED` | 429 | Too many requests. |
@@ -148,11 +148,13 @@ The canonical error code enum. Agents must not define codes outside this list wi
 
 | File | Purpose |
 |---|---|
-| `docs/product-spec.md` | Observable user behavior: personas, journeys, screen inventory, acceptance criteria (Gherkin), state matrices, validation rules, accessibility criteria. |
-| `docs/technical-spec.md` | Technical decisions: stack, data model, RLS policies, API surface, error contract, automations engine, observability, security, performance, testing, environments, config. |
-| `docs/roadmap.md` | Phased implementation plan: phase scope, prerequisites, deliverables, definitions of done tied to acceptance criteria. |
+| `docs/product-spec/index.md` | Personas, user journeys, screen inventory, default state pattern, open questions. |
+| `docs/product-spec/<feature>.md` | Per-feature Gherkin acceptance criteria, state matrices, and validation rules. |
+| `docs/technical-spec/index.md` | Stack pinning, repository layout, and links to all technical sections. |
+| `docs/technical-spec/<section>.md` | Thematic sections: schema, auth, api-surface, storage, content-model, automations-engine, observability, security, testing. |
+| `docs/roadmap.md` | Phased implementation plan: phase scope, reading list, prerequisites, deliverables, definitions of done. |
 | `docs/agent-guide.md` | This file. Glossary (source of truth), conventions, anti-patterns, PR rules, when to escalate, definition of done. |
-| `docs/prompts/` | Per-feature implementation prompts (populated in a subsequent step, **not** in scope for the initial four documents). |
+| `docs/prompts/` | Per-feature implementation prompts (populated in a subsequent step, **not** in scope for the initial documents). |
 
 ### Prompt File Naming Convention
 
@@ -170,8 +172,8 @@ Example: `docs/prompts/02-companies.md`
 Each prompt file must open with cross-document citations in repo-relative path format, e.g.:
 
 ```
-Implement the feature defined in `docs/product-spec.md#companies`
-against the schema in `docs/technical-spec.md#companies-table`.
+Implement the feature defined in `docs/product-spec/companies.md`
+against the schema in `docs/technical-spec/schema.md#companies`.
 Follow all conventions in `docs/agent-guide.md`.
 ```
 
@@ -241,7 +243,7 @@ Agents must never do any of the following without explicit instruction in a prom
 | Disable an ESLint rule without an inline justification comment | Rules exist for reasons. If disabling is truly necessary, add `// eslint-disable-next-line rule-name -- <reason>`. |
 | Call Supabase directly from a Client Component | Client components run in the browser. Use server actions or route handlers. Exception: reading public/anonymous data via `createBrowserClient` in a React Query hook is allowed. |
 | Put business logic in a React component | Components render UI. Business logic (status transitions, fork validation, automation evaluation) lives in `src/lib/`. |
-| Invent a new error code | Update the enum in `docs/agent-guide.md#error-codes` and `docs/technical-spec.md#error-contract` first, then open a question. |
+| Invent a new error code | Update the enum in `docs/agent-guide.md#error-codes` and `docs/technical-spec/api-surface.md#error-contract` first, then open a question. |
 | Change the database schema outside a migration file | No ad-hoc edits in the Supabase dashboard. All schema changes go through `supabase/migrations/`. |
 | Commit secrets or `.env` files | Use Vercel environment variables and `.env.local` (gitignored). |
 | Use `console.log` in committed code | Use the structured logger at `src/lib/logger.ts`. |
@@ -259,6 +261,10 @@ Agents must never do any of the following without explicit instruction in a prom
 
 Each PR implements one feature end-to-end: migration → RLS → server actions → UI → tests. Never split a feature across multiple PRs unless explicitly directed by the roadmap.
 
+### On Merge: Promote Decision Log
+
+After a PR is merged, copy all entries from `docs/agents/claude/<branch-slug>/decisions.md` into `docs/agents/decisions.md` (the global history file) as part of the merge commit. The merge PR description should note how many entries were promoted.
+
 ### Required Checklist
 
 Every PR description must include and complete this checklist:
@@ -271,7 +277,7 @@ Every PR description must include and complete this checklist:
 - [ ] Unit tests added for all server actions and lib functions
 - [ ] Integration test added for each server action crossing a DB boundary
 - [ ] E2E test added for each new user-facing flow
-- [ ] Acceptance criteria from docs/product-spec.md cited and passing
+- [ ] Acceptance criteria from docs/product-spec/<feature>.md cited and passing
 - [ ] TypeScript: `tsc --noEmit` passes
 - [ ] Lint: `eslint .` passes with zero warnings
 - [ ] Preview deploy green
@@ -299,11 +305,11 @@ Required viewports: 1280×800 (desktop) and 390×844 (mobile). Attach both to th
 An agent must surface a question (do not proceed) when any of the following arises:
 
 1. **Spec ambiguity**: Two reasonable interpretations of a requirement exist and the chosen interpretation would affect the data model or API shape.
-2. **Data model change required**: The task cannot be completed without adding, removing, or renaming a column or table not specified in `docs/technical-spec.md`.
+2. **Data model change required**: The task cannot be completed without adding, removing, or renaming a column or table not specified in `docs/technical-spec/schema.md`.
 3. **New external dependency**: The task seems to require a package not already in `package.json` (other than dev tooling).
 4. **Auth or RLS change**: Any modification to Supabase Auth configuration, RLS policies, or the middleware redirect rules.
 5. **Automations action surface change**: Adding a new trigger type or action type not in the glossary enum.
-6. **Security-relevant decision**: Rate limit values, CSP directives, signed URL TTLs, or anything in the security baseline (`docs/technical-spec.md#security-baseline`).
+6. **Security-relevant decision**: Rate limit values, CSP directives, signed URL TTLs, or anything in the security baseline (`docs/technical-spec/security.md`).
 7. **Acceptance criteria conflict**: The spec's acceptance criteria contradict each other or cannot both be satisfied.
 8. **CI is persistently broken for reasons outside the agent's scope**: After two fix attempts, escalate with a diagnosis.
 
@@ -320,6 +326,6 @@ A task is done when **all** of the following are true:
 5. Integration test added if the task crosses a database or storage boundary.
 6. E2E test added if the task introduces a user-facing flow (`playwright test`).
 7. Preview deploy on Vercel is green (build passes, no runtime errors in logs).
-8. Acceptance criteria from `docs/product-spec.md` cited in the PR description and passing in the E2E suite.
+8. Acceptance criteria from `docs/product-spec/<feature>.md` cited in the PR description and passing in the E2E suite.
 9. PR checklist complete.
 10. No `console.log`, no disabled lint rules without justification, no `any`.
