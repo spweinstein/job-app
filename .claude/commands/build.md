@@ -27,7 +27,14 @@ Coding rules (no exceptions):
 On merge:
 - Copy all entries from `docs/agents/claude/<branch-slug>/decisions.md` into `docs/agents/decisions.md` (global history) as part of the merge commit.
 
-**Closing:** After all code is committed, output this handoff block (substituting the real branch slug and argument):
+**Closing:** After all code is committed, use AskUserQuestion:
+- question: "Implementation complete. How would you like to proceed to /review $ARGUMENTS?"
+- options:
+  - label: "Continue in this session" / description: "Run /review $ARGUMENTS right now"
+  - label: "Start a new session" / description: "Show me how to continue in a fresh session"
+
+If "Continue in this session": output only `/review $ARGUMENTS`.
+If "Start a new session": output:
 
 ---
 Implementation complete. All code committed to branch `<branch-slug>`.

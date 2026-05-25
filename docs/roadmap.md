@@ -35,9 +35,9 @@ The following apply to every phase unless explicitly overridden:
 
 ## Phase 0: Foundation
 
-**Prompt file (future):** `docs/prompts/00-foundation.md`
+**Prompt files:** `docs/prompts/00a-scaffold.md`, `docs/prompts/00b-infrastructure.md`, `docs/prompts/00c-ci.md`
 
-**Reading list:** `docs/technical-spec/index.md`, `docs/technical-spec/testing.md`
+**Reading list:** `docs/technical-spec/index.md`, `docs/technical-spec/testing.md`, `docs/technical-spec/observability.md`, `docs/technical-spec/security.md`
 
 ### Scope
 

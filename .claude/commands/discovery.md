@@ -15,7 +15,14 @@ Steps:
 **Blocks:** <what it prevents>
 ```
 
-**Closing:** Commit the context files with message `docs: discovery findings for $ARGUMENTS`, then output this handoff block (substituting the real branch slug and argument):
+**Closing:** Commit the context files with message `docs: discovery findings for $ARGUMENTS`, then use AskUserQuestion:
+- question: "Discovery complete. How would you like to proceed to /plan $ARGUMENTS?"
+- options:
+  - label: "Continue in this session" / description: "Run /plan $ARGUMENTS right now"
+  - label: "Start a new session" / description: "Show me how to continue in a fresh session"
+
+If "Continue in this session": output only `/plan $ARGUMENTS`.
+If "Start a new session": output:
 
 ---
 Discovery complete. Findings committed to `docs/agents/claude/<branch-slug>/open-questions.md`.
