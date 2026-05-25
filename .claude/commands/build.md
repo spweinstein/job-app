@@ -23,12 +23,7 @@ Coding rules (no exceptions):
 - No `console.log`, no `any`, no `SELECT *`, no disabled lint rules without justification.
 - Server actions in `src/actions/` only. No DB calls in components. No `get*` functions in server actions — reads belong in Server Components.
 
-Before opening a PR:
-- Run `tsc --noEmit` — must exit 0.
-- Run `eslint .` — must exit 0 with zero warnings.
-- Run `vitest run` — all tests must pass.
-- Run `playwright test` — all E2E tests must pass.
-- Complete the full PR checklist from `docs/agent-guide.md#pr-conventions`.
-
 On merge:
 - Copy all entries from `docs/agents/claude/<branch-slug>/decisions.md` into `docs/agents/decisions.md` (global history) as part of the merge commit.
+
+**Closing:** After all code is committed, tell the user: "Implementation complete. Start a new conversation and run `/review $ARGUMENTS` to run the pre-merge gate."
