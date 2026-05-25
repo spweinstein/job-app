@@ -2,7 +2,7 @@
 
 All terminology defers to `docs/agent-guide.md#glossary`.
 
-**Reading list:** `docs/technical-spec/schema.md#resumes-table`, `docs/technical-spec/content-model.md`, `docs/technical-spec/storage.md`, `docs/technical-spec/api-surface.md`
+**Reading list:** `docs/technical-spec/schema.md#resumes`, `docs/technical-spec/content-model.md`, `docs/technical-spec/storage.md`, `docs/technical-spec/api-surface.md`
 
 ---
 

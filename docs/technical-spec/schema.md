@@ -9,8 +9,8 @@ All tables live in the `public` schema. All `updated_at` columns are kept curren
 | Column | Type | Nullable | Default | Notes |
 |---|---|---|---|---|
 | `id` | `uuid` | NOT NULL | — | PK; equals `auth.users.id` |
-| `full_name` | `text` | NOT NULL | `''` | |
-| `avatar_url` | `text` | NULL | — | Storage public URL |
+| `full_name` | `text` | NOT NULL | `''` | Max enforced by Zod (100 chars) |
+| `avatar_url` | `text` | NULL | — | Storage path (used to generate signed URLs at read time; avatars bucket is private) |
 | `notification_email_enabled` | `boolean` | NOT NULL | `true` | Whether automations may send email |
 | `created_at` | `timestamptz` | NOT NULL | `now()` | |
 | `updated_at` | `timestamptz` | NOT NULL | `now()` | |
@@ -85,7 +85,7 @@ All tables live in the `public` schema. All `updated_at` columns are kept curren
 **Triggers:**
 - AFTER UPDATE (SECURITY DEFINER): if `status` changed, inserts into `automation_events` with `trigger_type = 'application_status_changed'` and payload `{application_id, old_status, new_status}`.
 - AFTER INSERT (SECURITY DEFINER): inserts into `automation_events` with `trigger_type = 'application_created'` and payload `{application_id}`.
-- BEFORE INSERT OR UPDATE: if `status = 'applied'` and previous status was not `'applied'` (or this is an INSERT), sets `applied_at = now()`.
+- BEFORE INSERT OR UPDATE: if `status = 'applied'` and previous status was not `'applied'` (or this is an INSERT), sets `applied_at = now()`. (Trigger function must use `TG_OP = 'INSERT'` to detect inserts, since `OLD` is undefined on INSERT and `OLD.status IS DISTINCT FROM 'applied'` would evaluate to NULL, silently skipping the assignment.)
 
 ---
 
@@ -169,6 +169,7 @@ All tables live in the `public` schema. All `updated_at` columns are kept curren
 - `kind` must be one of the 4 values in `docs/agent-guide.md#calendar-item-kinds`.
 - `kind = 'interview'` requires `application_id IS NOT NULL`.
 - `kind` ∈ {event, meeting, interview} requires `start_at IS NOT NULL`.
+- `kind` ∈ {event, meeting, interview} → `end_at IS NOT NULL`
 - `end_at > start_at` (strict; zero-duration events are invalid).
 
 **`due_at` validation note:** `createCalendarItemSchema` must include `.refine(val => val == null || val > new Date(), { message: "Due date must be in the future." })` on `due_at`. The `updateCalendarItemSchema` omits this refine — past due dates are valid on edit.
@@ -246,7 +247,7 @@ Immutable log. No UPDATE or DELETE from application code.
 | Operation | Rule |
 |---|---|
 | SELECT | Own rows only (`user_id = auth.uid()`) |
-| INSERT | Denied — rows written only by SECURITY DEFINER trigger functions |
+| INSERT | Denied for authenticated users — rows written by SECURITY DEFINER trigger functions (for DB-trigger-based events) or by Edge Functions via service role (for `task_due_soon` cron events) |
 | UPDATE | Denied — `processed_at` updated only by Edge Function via service role |
 | DELETE | Denied |
 

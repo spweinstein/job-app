@@ -2,7 +2,7 @@
 
 All terminology defers to `docs/agent-guide.md#glossary`.
 
-**Reading list:** `docs/technical-spec/schema.md#automations-table`, `docs/technical-spec/automations-engine.md`, `docs/technical-spec/api-surface.md`
+**Reading list:** `docs/technical-spec/schema.md#automations`, `docs/technical-spec/automations-engine.md`, `docs/technical-spec/api-surface.md`
 
 ---
 
@@ -18,6 +18,12 @@ Feature: Automations List
     When I click the toggle next to it on /automations
     Then the automation's enabled field becomes false
     And the toggle visually reflects the new state
+
+  Scenario: Empty state when no automations exist
+    Given the user has no automations
+    When the user visits /automations
+    Then the page shows an empty state with the message "No automations yet. Create one to get notified when things change."
+    And a "New automation" button is visible
 ```
 
 ### Create
@@ -39,6 +45,42 @@ Feature: Create Automation
   Scenario: Missing subject for send_email action
     When I configure send_email action without a subject
     Then I see "Email subject is required."
+```
+
+```gherkin
+Feature: Automation Execution — All Trigger and Action Types
+
+  Scenario: application_created trigger fires when a new application is saved
+    Given the user has an automation with trigger "application_created" and action "send_email"
+    When the user creates a new application
+    Then an automation_event row is inserted with trigger_type "application_created"
+    And the action execution loop sends a transactional email to the user
+
+  Scenario: interview_scheduled trigger fires when an interview calendar item is created
+    Given the user has an automation with trigger "interview_scheduled" and action "create_task"
+    When the user creates a calendar item with kind "interview"
+    Then an automation_event row is inserted with trigger_type "interview_scheduled"
+    And the action execution loop inserts a new calendar item with kind "task"
+
+  Scenario: task_due_soon trigger fires for tasks due within 24 hours
+    Given the user has an automation with trigger "task_due_soon" and action "send_email"
+    And the user has an incomplete task with due_at within the next 24 hours
+    When the task_due_soon detection pass runs
+    Then an automation_event row is inserted with trigger_type "task_due_soon"
+    And the action execution loop sends a transactional email to the user
+
+  Scenario: create_task action inserts a new calendar item
+    Given an automation has action_type "create_task" with action_config specifying title "Follow up"
+    When the automation fires
+    Then a new calendar item with kind "task" and name "Follow up" is inserted for the user
+    And an automation_action_log row is created with status "succeeded"
+
+  Scenario: update_application_status action changes the application status
+    Given an automation has action_type "update_application_status" with action_config status "screening"
+    And the automation is linked to an application with status "applied"
+    When the automation fires
+    Then the application status is updated to "screening"
+    And an automation_action_log row is created with status "succeeded"
 ```
 
 ### Execution History
@@ -77,7 +119,7 @@ Deviates from the Default State Pattern:
 | Loading | N/A — form is static; any dynamic selects (e.g., status list) are hard-coded enums. |
 | Empty | All fields blank, no errors shown. |
 | Populated | Fields filled, no errors. |
-| Partial failure | If save fails with `UPSTREAM_ERROR`: "Automation saved but test email failed. You can retry from the automation detail page." |
+| Partial failure | Action execution failed (shows after first automation fires). Automation is saved and active. Banner: 'The last automation action failed. Check the execution history.' |
 | Full failure | If save fails: inline error above submit button with the error message. Form data preserved. |
 | Offline | Submit button disabled. Tooltip: "You are offline." |
 

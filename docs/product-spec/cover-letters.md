@@ -2,7 +2,7 @@
 
 All terminology defers to `docs/agent-guide.md#glossary`.
 
-**Reading list:** `docs/technical-spec/schema.md#cover-letters-table`, `docs/technical-spec/content-model.md`, `docs/technical-spec/storage.md`, `docs/technical-spec/api-surface.md`
+**Reading list:** `docs/technical-spec/schema.md#cover_letters`, `docs/technical-spec/content-model.md`, `docs/technical-spec/storage.md`, `docs/technical-spec/api-surface.md`
 
 ---
 
@@ -54,6 +54,26 @@ Feature: Fork Cover Letter
     Then the source cover letter's content is unchanged
 ```
 
+### Edit
+
+```gherkin
+Feature: Edit Cover Letter
+
+  Scenario: User saves changes to a cover letter
+    Given the user is on /cover-letters/[id]/edit for a cover letter they own
+    When the user modifies the cover letter content and submits the form
+    Then the cover letter content is updated
+    And the user is redirected to /cover-letters/[id]
+    And a success toast "Cover letter saved." is shown
+
+  Scenario: Unsaved changes prompt on navigation
+    Given the user is on /cover-letters/[id]/edit with unsaved changes
+    When the user attempts to navigate away
+    Then a confirmation dialog appears: "Leave without saving?"
+    When the user confirms
+    Then navigation proceeds and changes are discarded
+```
+
 ### Delete
 
 ```gherkin
@@ -87,9 +107,13 @@ Same pattern as `/resumes` list, substituting "cover letters" for "resumes":
 | Full failure | Inline error with Retry. |
 | Offline | Offline banner. |
 
-### `/cover-letters/new`, `/cover-letters/[id]`, `/cover-letters/[id]/edit`, `/cover-letters/[id]/fork`
+### `/cover-letters/new`, `/cover-letters/[id]`, `/cover-letters/[id]/fork`
 
 Use the [Default State Pattern](index.md#default-state-pattern).
+
+### `/cover-letters/[id]/edit` (Edit Cover Letter)
+
+Follows the Default State Pattern defined in `docs/product-spec/index.md`.
 
 ---
 

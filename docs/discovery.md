@@ -72,7 +72,7 @@ Small server-side functions that run on Supabase's infrastructure, independently
 When an agent opens a pull request, you don't need to understand every line. Use this checklist:
 
 **Schema changes (if any)**
-- Does the migration file in `supabase/migrations/` match the table described in `docs/technical-spec.md`? Check column names and types.
+- Does the migration file in `supabase/migrations/` match the table described in `docs/technical-spec/index.md`? Check column names and types.
 - Does the migration define RLS policies for every new table?
 - Did the agent regenerate `src/types/database.ts` after the migration?
 
@@ -82,7 +82,7 @@ When an agent opens a pull request, you don't need to understand every line. Use
 - Are there any `console.log` statements? (The spec forbids these; use the structured logger instead.)
 
 **Tests**
-- Do the Playwright E2E tests pass? These cover the Gherkin acceptance criteria in `docs/product-spec.md`.
+- Do the Playwright E2E tests pass? These cover the Gherkin acceptance criteria in `docs/product-spec/index.md`.
 - Do the Vitest unit tests pass?
 - Does `tsc --noEmit` pass? Does `eslint .` pass with zero warnings?
 

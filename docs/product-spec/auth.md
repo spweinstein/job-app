@@ -2,7 +2,7 @@
 
 All terminology defers to `docs/agent-guide.md#glossary`.
 
-**Reading list:** `docs/technical-spec/auth.md`, `docs/technical-spec/schema.md#profiles-table`
+**Reading list:** `docs/technical-spec/auth.md`, `docs/technical-spec/schema.md#profiles`
 
 ---
 
@@ -84,7 +84,7 @@ Feature: Reset Password
 
   Scenario: Valid token, passwords match
     Given I have a valid reset token
-    When I navigate to /reset-password?token=<token>
+    When I navigate to /reset-password?token_hash=<hash>&type=recovery
     And I enter matching new passwords "NewPass1!"
     And I click "Reset password"
     Then I see a success toast "Password reset. Please log in."

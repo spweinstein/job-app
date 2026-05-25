@@ -10,7 +10,7 @@
 | `resume-attachments` | Private | Optional DOCX or PDF file attached to a resume |
 | `cover-letter-attachments` | Private | Optional DOCX or PDF file attached to a cover letter |
 
-**Bucket ownership:** All three buckets are created in Phase 4 (`docs/roadmap.md#phase-4`).
+**Bucket ownership:** All three buckets are created in Phase 4 (`docs/roadmap.md#phase-4-resumes-and-cover-letters`).
 
 ---
 
@@ -26,7 +26,7 @@
 
 ## Signed URL Policy
 
-All files served via signed URLs with a 1-hour TTL. Generated server-side in server actions; never generated in client components.
+All files served via signed URLs with a 1-hour TTL. The `avatars` bucket is private; `avatar_url` stores the storage path, and signed URLs are generated at read time in the Server Component using `supabase.storage.from('avatars').createSignedUrl(path, 3600)`. Generated server-side in Server Components directly; never generated in client components.
 
 ---
 

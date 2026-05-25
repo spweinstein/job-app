@@ -28,7 +28,7 @@ Triggers are detected via Postgres trigger functions that write rows to `automat
 
 **Location:** Supabase Edge Function at `supabase/functions/process-automation-events/index.ts`.
 
-**Invocation:** Supabase cron job every 30 seconds (configured in `supabase/config.toml`). Processes unprocessed events in batches of 50.
+**Invocation:** Two cron schedules configured in `supabase/config.toml` invoke the same function. The 30-second schedule runs the action-execution pass (consume pending `automation_events` rows and execute actions). The 15-minute schedule runs the `task_due_soon` detection pass (check for tasks due within 24 hours, insert `automation_events` rows). The function distinguishes between passes via an optional `?pass=detect` query parameter. The execution pass processes unprocessed events in batches of 50.
 
 **Processing loop:**
 
@@ -85,10 +85,23 @@ The `send_email` action sends only to the authenticated user's own email address
 
 ## Edge Function Configuration
 
+The single `process-automation-events` function handles both responsibilities, distinguished by an optional `?pass=detect` query parameter on the 15-minute cron invocation vs. no parameter (or `?pass=execute`) on the 30-second invocation.
+
 ```toml
 [functions.process-automation-events]
 verify_jwt = false  # invoked by cron, not by user JWT
+
+[functions.process-automation-events.schedule-1]
+schedule = "*/30 * * * * *"   # action execution loop (no ?pass param, or ?pass=execute)
+
+[functions.process-automation-events.schedule-2]
+schedule = "*/15 * * * *"     # task_due_soon detection (every 15 min, ?pass=detect)
 ```
+
+The function has two responsibilities:
+
+1. **Detection pass** (invoked every 15 minutes via `?pass=detect`): checks for `task_due_soon` conditions — queries `calendar_items` for tasks with `due_at` within `automation.trigger_config.hours_before` hours (default 24 if absent) and `completed_at IS NULL`; inserts `automation_events` rows via service role if not already emitted.
+2. **Execution pass** (invoked every 30 seconds, no parameter or `?pass=execute`): reads pending `automation_events`, executes associated automation actions, writes `automation_action_logs`.
 
 The function authenticates itself using `SUPABASE_SERVICE_ROLE_KEY` (set in Supabase dashboard, not committed).
 

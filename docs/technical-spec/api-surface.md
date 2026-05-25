@@ -4,7 +4,7 @@
 
 ## Read Pattern
 
-Data reads occur directly in Server Components using `createServerClient` from `src/lib/supabase/server.ts`. **Never wrap a SELECT-only query in a server action.** Only mutating operations (create, update, delete, upload, toggle, fork) are server actions.
+Data reads occur directly in Server Components using `createServerClient` from `src/lib/supabase/server.ts`. **Never wrap a SELECT-only query in a server action.** Only mutating operations (create, update, delete, upload, toggle, fork) are server actions. Signed URL generation (e.g., `supabase.storage.createSignedUrl`) is a storage read operation and follows the Read Pattern — it occurs in Server Components, not in server actions.
 
 The dashboard funnel aggregation is fetched in the Dashboard Server Component with a single `SELECT status, count(*) FROM applications WHERE user_id = $1 GROUP BY status` query; it is not a server action.
 
@@ -68,7 +68,7 @@ Route handlers are used only where an external HTTP caller must POST to an endpo
 
 | Handler | File | Purpose |
 |---|---|---|
-| POST `/api/webhooks/resend` | `src/app/api/webhooks/resend/route.ts` | Receive delivery status events from Resend. Verifies `Resend-Signature` header. Updates `automation_action_logs` if applicable. |
+| POST `/api/webhooks/resend` | `src/app/api/webhooks/resend/route.ts` | Verifies the Resend webhook signature. On `email.delivered`, `email.bounced`, or `email.complained` events, records the outcome via the `process-automation-events` Edge Function's internal mechanism (the Edge Function queries `automation_action_logs` by the Resend message ID stored in the log entry). The webhook route itself does NOT write to `automation_action_logs` directly. |
 
 ---
 

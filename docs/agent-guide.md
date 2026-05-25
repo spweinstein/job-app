@@ -129,13 +129,13 @@ The `ResumeContentV1.sections[].type` field is restricted to this closed set (de
 
 ### Error Codes
 
-The canonical error code enum. Agents must not define codes outside this list without a spec change (see `docs/technical-spec.md#error-contract`).
+The canonical error code enum. Agents must not define codes outside this list without a spec change (see `docs/technical-spec/api-surface.md#error-contract`).
 
 | Code | HTTP Status | Meaning |
 |---|---|---|
 | `UNAUTHENTICATED` | 401 | No valid session. |
 | `FORBIDDEN` | 403 | Session valid but user does not own the resource. |
-| `NOT_FOUND` | 404 | Resource does not exist (or user cannot see it). |
+| `NOT_FOUND` | 404 | Resource does not exist and the caller is known to have access to the parent context. **For resource ownership checks on authenticated user data, use `FORBIDDEN` instead** (see `docs/technical-spec/auth.md#forbidden-vs-not_found`). |
 | `VALIDATION_ERROR` | 422 | Input failed Zod schema validation. |
 | `CONFLICT` | 409 | Unique constraint or business rule violation. |
 | `RATE_LIMITED` | 429 | Too many requests. |
@@ -261,6 +261,10 @@ Agents must never do any of the following without explicit instruction in a prom
 
 Each PR implements one feature end-to-end: migration → RLS → server actions → UI → tests. Never split a feature across multiple PRs unless explicitly directed by the roadmap.
 
+### On Merge: Promote Decision Log
+
+After a PR is merged, copy all entries from `docs/agents/claude/<branch-slug>/decisions.md` into `docs/agents/decisions.md` (the global history file) as part of the merge commit. The merge PR description should note how many entries were promoted.
+
 ### Required Checklist
 
 Every PR description must include and complete this checklist:
@@ -273,7 +277,7 @@ Every PR description must include and complete this checklist:
 - [ ] Unit tests added for all server actions and lib functions
 - [ ] Integration test added for each server action crossing a DB boundary
 - [ ] E2E test added for each new user-facing flow
-- [ ] Acceptance criteria from docs/product-spec.md cited and passing
+- [ ] Acceptance criteria from docs/product-spec/<feature>.md cited and passing
 - [ ] TypeScript: `tsc --noEmit` passes
 - [ ] Lint: `eslint .` passes with zero warnings
 - [ ] Preview deploy green
@@ -301,11 +305,11 @@ Required viewports: 1280×800 (desktop) and 390×844 (mobile). Attach both to th
 An agent must surface a question (do not proceed) when any of the following arises:
 
 1. **Spec ambiguity**: Two reasonable interpretations of a requirement exist and the chosen interpretation would affect the data model or API shape.
-2. **Data model change required**: The task cannot be completed without adding, removing, or renaming a column or table not specified in `docs/technical-spec.md`.
+2. **Data model change required**: The task cannot be completed without adding, removing, or renaming a column or table not specified in `docs/technical-spec/schema.md`.
 3. **New external dependency**: The task seems to require a package not already in `package.json` (other than dev tooling).
 4. **Auth or RLS change**: Any modification to Supabase Auth configuration, RLS policies, or the middleware redirect rules.
 5. **Automations action surface change**: Adding a new trigger type or action type not in the glossary enum.
-6. **Security-relevant decision**: Rate limit values, CSP directives, signed URL TTLs, or anything in the security baseline (`docs/technical-spec.md#security-baseline`).
+6. **Security-relevant decision**: Rate limit values, CSP directives, signed URL TTLs, or anything in the security baseline (`docs/technical-spec/security.md`).
 7. **Acceptance criteria conflict**: The spec's acceptance criteria contradict each other or cannot both be satisfied.
 8. **CI is persistently broken for reasons outside the agent's scope**: After two fix attempts, escalate with a diagnosis.
 
@@ -322,6 +326,6 @@ A task is done when **all** of the following are true:
 5. Integration test added if the task crosses a database or storage boundary.
 6. E2E test added if the task introduces a user-facing flow (`playwright test`).
 7. Preview deploy on Vercel is green (build passes, no runtime errors in logs).
-8. Acceptance criteria from `docs/product-spec.md` cited in the PR description and passing in the E2E suite.
+8. Acceptance criteria from `docs/product-spec/<feature>.md` cited in the PR description and passing in the E2E suite.
 9. PR checklist complete.
 10. No `console.log`, no disabled lint rules without justification, no `any`.

@@ -197,7 +197,7 @@ All companies acceptance criteria pass. Preview deploy shows Companies CRUD work
 
 **Prompt file (future):** `docs/prompts/03-applications.md`
 
-**Reading list:** `docs/product-spec/applications.md`, `docs/technical-spec/schema.md#applications`, `docs/technical-spec/schema.md#automation-events`, `docs/technical-spec/api-surface.md`
+**Reading list:** `docs/product-spec/applications.md`, `docs/technical-spec/schema.md#applications`, `docs/technical-spec/schema.md#automation_events`, `docs/technical-spec/api-surface.md`
 
 ### Scope
 
@@ -211,7 +211,7 @@ Phase 2 complete.
 
 | Deliverable | Detail |
 |---|---|
-| Migration | `applications` table + RLS policies + `emit_application_status_changed` trigger + `emit_application_created` trigger + `automation_events` table (per `docs/technical-spec/schema.md#applications` and `docs/technical-spec/schema.md#automation-events`) |
+| Migration | `applications` table + RLS policies + `emit_application_status_changed` trigger + `emit_application_created` trigger + `automation_events` table (per `docs/technical-spec/schema.md#applications` and `docs/technical-spec/schema.md#automation_events`) |
 | Server actions | `src/actions/applications.ts`: `createApplication`, `updateApplication`, `deleteApplication` |
 | Zod schemas | `src/lib/validations/applications.ts` |
 | Pages | `/applications`, `/applications/new`, `/applications/[id]`, `/applications/[id]/edit` |
@@ -249,7 +249,7 @@ All applications acceptance criteria pass. Triggers write correctly to `automati
 
 **Prompt file (future):** `docs/prompts/04-resumes-cover-letters.md`
 
-**Reading list:** `docs/product-spec/resumes.md`, `docs/product-spec/cover-letters.md`, `docs/technical-spec/schema.md#resumes`, `docs/technical-spec/schema.md#cover-letters`, `docs/technical-spec/content-model.md`, `docs/technical-spec/storage.md`, `docs/technical-spec/api-surface.md`
+**Reading list:** `docs/product-spec/resumes.md`, `docs/product-spec/cover-letters.md`, `docs/technical-spec/schema.md#resumes`, `docs/technical-spec/schema.md#cover_letters`, `docs/technical-spec/content-model.md`, `docs/technical-spec/storage.md`, `docs/technical-spec/api-surface.md`
 
 ### Scope
 
@@ -263,7 +263,7 @@ Phase 3 complete.
 
 | Deliverable | Detail |
 |---|---|
-| Migration | `resumes` table + `cover_letters` table + RLS policies + FK constraints (per `docs/technical-spec/schema.md#resumes` and `docs/technical-spec/schema.md#cover-letters`) |
+| Migration | `resumes` table + `cover_letters` table + RLS policies + FK constraints (per `docs/technical-spec/schema.md#resumes` and `docs/technical-spec/schema.md#cover_letters`) |
 | Migration (storage) | Create `avatars`, `resume-attachments`, and `cover-letter-attachments` buckets with storage RLS policies (per `docs/technical-spec/storage.md`) |
 | Server actions (resumes) | `createResume`, `updateResume`, `forkResume`, `deleteResume`, `uploadResumeAttachment`, `deleteResumeAttachment` — reads are Server Component queries |
 | Server actions (cover letters) | `createCoverLetter`, `updateCoverLetter`, `forkCoverLetter`, `deleteCoverLetter`, `uploadCoverLetterAttachment`, `deleteCoverLetterAttachment` — reads are Server Component queries |
@@ -294,7 +294,7 @@ From `docs/product-spec/cover-letters.md`:
 
 ### State Matrix Coverage
 
-`/resumes`, `/resumes/[id]` — see `docs/product-spec/resumes.md#state-matrices`. `/resumes/new`, `/resumes/[id]/edit`, `/resumes/[id]/fork` use the Default State Pattern. Same for cover-letters equivalents.
+`/resumes` — see `docs/product-spec/resumes.md#state-matrices`. `/resumes/[id]`, `/resumes/new`, `/resumes/[id]/edit`, `/resumes/[id]/fork` follow the Default State Pattern (see `docs/product-spec/index.md`). Same for cover-letters equivalents.
 
 ### Definition of Done
 
@@ -306,7 +306,7 @@ All resumes and cover letters acceptance criteria pass, including section editor
 
 **Prompt file (future):** `docs/prompts/05-calendar-items.md`
 
-**Reading list:** `docs/product-spec/calendar-items.md`, `docs/technical-spec/schema.md#calendar-items`, `docs/technical-spec/api-surface.md`
+**Reading list:** `docs/product-spec/calendar-items.md`, `docs/technical-spec/schema.md#calendar_items`, `docs/technical-spec/api-surface.md`
 
 ### Scope
 
@@ -320,7 +320,7 @@ Phase 3 complete. (Phase 4 is not a prerequisite but should be merged first if r
 
 | Deliverable | Detail |
 |---|---|
-| Migration | `calendar_items` table + RLS policies + CHECK constraints + `emit_interview_scheduled` trigger (per `docs/technical-spec/schema.md#calendar-items`) |
+| Migration | `calendar_items` table + RLS policies + CHECK constraints + `emit_interview_scheduled` trigger (per `docs/technical-spec/schema.md#calendar_items`) |
 | Server actions | `createCalendarItem`, `updateCalendarItem`, `completeTask`, `deleteCalendarItem` — reads are Server Component queries |
 | Zod schemas | `src/lib/validations/calendar-items.ts` |
 | Pages | `/calendar`, `/calendar/new`, `/calendar/[id]`, `/calendar/[id]/edit` |
@@ -358,7 +358,7 @@ All calendar items acceptance criteria pass. `interview_scheduled` trigger write
 
 **Prompt file (future):** `docs/prompts/06-automations.md`
 
-**Reading list:** `docs/product-spec/automations.md`, `docs/technical-spec/schema.md#automations`, `docs/technical-spec/schema.md#automation-events`, `docs/technical-spec/schema.md#automation-action-logs`, `docs/technical-spec/automations-engine.md`, `docs/technical-spec/api-surface.md`
+**Reading list:** `docs/product-spec/automations.md`, `docs/technical-spec/schema.md#automations`, `docs/technical-spec/schema.md#automation_events`, `docs/technical-spec/schema.md#automation_action_logs`, `docs/technical-spec/automations-engine.md`, `docs/technical-spec/api-surface.md`
 
 ### Scope
 
@@ -372,7 +372,7 @@ Phases 1–5 complete. (All trigger-emitting tables and their triggers must exis
 
 | Deliverable | Detail |
 |---|---|
-| Migration | `automations` table + `automation_action_logs` table + RLS policies (per `docs/technical-spec/schema.md#automations` and `docs/technical-spec/schema.md#automation-action-logs`). `automation_events` table already created in Phase 3. |
+| Migration | `automations` table + `automation_action_logs` table + RLS policies (per `docs/technical-spec/schema.md#automations` and `docs/technical-spec/schema.md#automation_action_logs`). `automation_events` table already created in Phase 3. |
 | Server actions | `createAutomation`, `updateAutomation`, `toggleAutomation`, `deleteAutomation` — reads are Server Component queries |
 | Zod schemas | `src/lib/validations/automations.ts` — validates `trigger_config` and `action_config` shapes per trigger/action type |
 | Pages | `/automations`, `/automations/new`, `/automations/[id]`, `/automations/[id]/edit` |
@@ -392,7 +392,7 @@ From `docs/product-spec/automations.md`:
 - List — toggle scenario
 - Create — both scenarios
 - Execution History
-- User journey 3 (setup automation → observe it fire within 60 seconds) from `docs/product-spec/index.md#journey-3`
+- User journey 3 (setup automation → observe it fire within 60 seconds) from `docs/product-spec/index.md#journey-3-setting-up-an-automation-and-observing-it-fire`
 
 ### Test Additions Required
 
@@ -463,7 +463,7 @@ All profile acceptance criteria pass. Avatar upload/display works. Notification 
 
 **Prompt file (future):** `docs/prompts/08-dashboard.md`
 
-**Reading list:** `docs/product-spec/dashboard.md`, `docs/product-spec/index.md#journey-1`, `docs/technical-spec/schema.md#applications`, `docs/technical-spec/api-surface.md#read-pattern`
+**Reading list:** `docs/product-spec/dashboard.md`, `docs/product-spec/index.md#journey-1-first-time-signup--first-application-logged`, `docs/technical-spec/schema.md#applications`, `docs/technical-spec/api-surface.md#read-pattern`
 
 ### Scope
 
@@ -510,8 +510,9 @@ Phase 0 (Foundation)
         │           ├── Phase 4 (Resumes & Cover Letters) [parallel w/ 5] │
         │           ├── Phase 5 (Calendar Items)          [parallel w/ 4] │
         │           └── [Phases 4 + 5 complete] ──────────────────────────┤
-        │                 └── Phase 6 (Automations)                       │
-        │                       └── Phase 7 (Profile) [parallel w/ 6]    │
+        │                 └── Phase 6 (Automations) ──────────────────────┤
+        │                                                                  │
+        ├── Phase 7 (Profile) [requires Phase 1 only] ───────────────────-┤
         │                                                                  │
         └──────────────────────────── Phase 8 (Dashboard) ────────────────┘
                                       (needs all prior phases)

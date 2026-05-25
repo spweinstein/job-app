@@ -53,7 +53,7 @@ Nonce is generated per-request in middleware and injected into `<script>` tags.
 | Automation loops | `update_application_status` checks that target status differs from current before updating. Idempotency key prevents same event from executing twice. |
 | Runaway cron / excessive email | Max 3 retries, then dead-letter. No automation fires more than once per triggering event. |
 | Injection via template variables | Template variables resolved from DB values; `body` and `subject` are user-typed but sent only to the user's own email and not executed as code. |
-| Edge Function privilege escalation | Service role key is scoped only to write `automation_action_logs` and update `automation_events`; all other writes go through RLS-enforced user session. |
+| Edge Function privilege escalation | Service role key is scoped only to: write `automation_action_logs`, update `automation_events` (mark processed), and update `automations.last_fired_at`; all other writes go through RLS-enforced user session. |
 
 ---
 

@@ -6,7 +6,7 @@
 
 **Provider:** Supabase Auth (email + password only in this version).
 
-**Cookie strategy:** `@supabase/ssr` package. Server-side: `createServerClient` with `cookies()` from `next/headers`. Client-side: `createBrowserClient`. Middleware: `createMiddlewareClient`. All three read and write the same `sb-<project-ref>-auth-token` cookie (httpOnly, Secure, SameSite=Lax, path=/).
+**Cookie strategy:** `@supabase/ssr` package. Server-side: `createServerClient` with `cookies()` from `next/headers`. Client-side: `createBrowserClient`. Middleware: `createServerClient` from `@supabase/ssr`, passing `request.cookies` (read) and a `response.cookies` setter (write) as the cookie adapter. All three read and write the same `sb-<project-ref>-auth-token` cookie (httpOnly, Secure, SameSite=Lax, path=/).
 
 **Session reads:**
 - Server Components and Server Actions: always use `createServerClient` from `src/lib/supabase/server.ts`.
@@ -43,4 +43,22 @@
 3. Run the UPDATE. On DB error, log with `logger.error` and return `{ error: { code: 'INTERNAL_ERROR' } }`.
 4. On success, call `revalidatePath('/companies/[id]')` and return `{ data: { id } }`.
 
-**Edge Functions** use the `SUPABASE_SERVICE_ROLE_KEY` to bypass RLS for: writing `automation_action_logs`, updating `automation_events.processed_at`, and updating `automations.last_fired_at`. Service role access is limited to these three tables and only from Edge Functions.
+**Edge Functions** use the `SUPABASE_SERVICE_ROLE_KEY` to bypass RLS for: writing `automation_action_logs`, updating `automation_events.processed_at`, updating `automations.last_fired_at`, and inserting into `automation_events` (for `task_due_soon` cron events). Service role access is limited to these three tables and only from Edge Functions.
+
+---
+
+## Change Password Flow (Authenticated User)
+
+An authenticated user changing their password requires two sequential Supabase calls:
+
+1. **Verify current password** — call `supabase.auth.signInWithPassword({ email: user.email, password: currentPassword })` using the user's email from their session and the submitted current password. If this call returns an error, surface `VALIDATION_ERROR` with message "Current password is incorrect."
+
+2. **Set new password** — call `supabase.auth.updateUser({ password: newPassword })`. If this call returns an error, surface `INTERNAL_ERROR`.
+
+Both calls are made server-side in the `changePassword` server action. The client never receives the Supabase session from step 1; it is discarded after the password check.
+
+---
+
+## FORBIDDEN vs NOT_FOUND
+
+Use `FORBIDDEN` (not `NOT_FOUND`) whenever a resource lookup fails for an authenticated user — whether the row is absent or owned by another user. Reserve `NOT_FOUND` for top-level resources that are genuinely public-context not-found cases (none exist in this application). This overrides the `NOT_FOUND` description in `docs/agent-guide.md`, which will be updated to reflect this rule.

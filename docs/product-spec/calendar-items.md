@@ -2,7 +2,7 @@
 
 All terminology defers to `docs/agent-guide.md#glossary`.
 
-**Reading list:** `docs/technical-spec/schema.md#calendar-items-table`, `docs/technical-spec/api-surface.md`
+**Reading list:** `docs/technical-spec/schema.md#calendar_items`, `docs/technical-spec/api-surface.md`
 
 ---
 
@@ -57,6 +57,27 @@ Feature: Create Calendar Item
     Given I am on /calendar/new with kind "interview" selected
     When I click "Save" without linking an application
     Then I see "Interviews must be linked to an application."
+
+  Scenario: User creates an event with valid start and end times
+    Given the user is on /calendar/new
+    When the user selects kind "event", enters a title, sets start_at to "2026-06-01T10:00", and sets end_at to "2026-06-01T11:00"
+    And the user submits the form
+    Then a new calendar item with kind "event" is created
+    And the user is redirected to /calendar
+
+  Scenario: User cannot create an event with end_at before start_at
+    Given the user is on /calendar/new
+    When the user selects kind "event", sets start_at to "2026-06-01T11:00", and sets end_at to "2026-06-01T10:00"
+    And the user submits the form
+    Then the form shows the error "End time must be after start time"
+    And no calendar item is created
+
+  Scenario: User cannot create an event without end_at
+    Given the user is on /calendar/new
+    When the user selects kind "event" and leaves end_at empty
+    And the user submits the form
+    Then the form shows the error "End time is required for events, meetings, and interviews"
+    And no calendar item is created
 ```
 
 ### Complete Task

@@ -16,7 +16,7 @@ A single-user job application tracker. Stack: Next.js 15 App Router, TypeScript 
 | `docs/product-spec/index.md` | Start here for product context; personas, user journeys, screen inventory, default state pattern. |
 | `docs/product-spec/<feature>.md` | Read the feature file for the phase being implemented (Gherkin + state matrices + validation rules). |
 | `docs/roadmap.md` | Phase scope, prerequisites, deliverables, reading list, acceptance criteria to cite, test additions required. |
-| `docs/prompts/<NN>-<slug>.md` | Per-feature implementation prompt. Start here when implementing a phase. |
+| `docs/prompts/<NN>-<slug>.md` | Per-feature implementation prompt. Start here when implementing a phase. (not yet created — populated when each phase is started) |
 | `docs/agents/decisions.md` | Global history of significant decisions (promoted from per-branch files on merge). Read for context; do not append directly. |
 | `docs/agents/claude/<branch-slug>/decisions.md` | Your per-branch working decision log. Append here during implementation. |
 | `docs/agents/claude/<branch-slug>/open-questions.md` | Your per-branch live question list. |
@@ -51,6 +51,8 @@ Rules:
 
 Rules:
 - Start from `docs/prompts/<NN>-<slug>.md` for the current phase.
+- Read the spec files listed in the phase's Reading List in `docs/roadmap.md`.
+- Check `docs/agents/claude/<branch-slug>/open-questions.md` for any unresolved questions that block this phase before writing code.
 - Follow all conventions in `docs/agent-guide.md` without exception.
 - Work in the vertical-slice order: migration → types → server actions → UI → tests.
 - After every migration: `supabase gen types typescript --local > src/types/database.ts`.
@@ -59,7 +61,7 @@ Rules:
 
 **Decision Gate — stop and surface to the user before proceeding when the implementation requires:**
 - A package not already in `package.json`
-- Adding, removing, or renaming a database column or table
+- Adding, removing, or renaming a database column or table **not already specified in `docs/technical-spec/schema.md`**
 - Adding, removing, or renaming a server action, or changing its input/output shape
 - Changing observable user behavior (new UI state, changed error message text, different navigation flow)
 
@@ -90,6 +92,7 @@ Each agent session operates on its own branch. All context files are scoped to t
 **`docs/agents/claude/<branch-slug>/decisions.md`** — Per-branch working log. Append an entry whenever you make a significant decision:
 ```
 ## YYYY-MM-DD — <short title>
+**Branch:** <branch-slug>
 **Context:** <why this came up>
 **Decision:** <what was decided>
 **Consequence:** <what this affects>

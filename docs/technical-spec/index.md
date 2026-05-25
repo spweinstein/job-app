@@ -117,7 +117,7 @@ All terminology defers to `docs/agent-guide.md#glossary`. All resource names, fi
 │   ├── config.toml
 │   ├── migrations/
 │   ├── functions/
-│   │   └── process-automation-events/
+│   │   └── process-automation-events/   # handles both task_due_soon detection (15-min cron) and action execution (30-sec cron)
 │   │       └── index.ts
 │   └── seed.sql
 ├── tests/
