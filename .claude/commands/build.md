@@ -33,7 +33,7 @@ On merge:
   - label: "Continue in this session" / description: "Run /review $ARGUMENTS right now"
   - label: "Start a new session" / description: "Show me how to continue in a fresh session"
 
-If "Continue in this session": output only `/review $ARGUMENTS`.
+If "Continue in this session": invoke the review skill using the Skill tool (`skill: review`, `args: $ARGUMENTS`). Do not output any other text — just invoke the skill.
 If "Start a new session": output:
 
 ---
