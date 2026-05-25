@@ -15,23 +15,19 @@ Steps:
 **Blocks:** <what it prevents>
 ```
 
-**Closing:** Commit the context files with message `docs: discovery findings for $ARGUMENTS`, then output this handoff block (substituting the real branch slug and argument):
+**Closing:** Commit the context files with message `docs: discovery findings for $ARGUMENTS`, then use AskUserQuestion:
+- question: "Discovery complete. How would you like to proceed to /plan $ARGUMENTS?"
+- options:
+  - label: "Continue in this session" / description: "Run /plan $ARGUMENTS right now"
+  - label: "Start a new session" / description: "Show me how to continue in a fresh session"
+
+If "Continue in this session": output only `/plan $ARGUMENTS`.
+If "Start a new session": output:
 
 ---
-Discovery complete. Findings committed to `docs/agents/claude/<branch-slug>/open-questions.md`.
-
-**Option A — continue in this session:**
-/plan $ARGUMENTS
-
-**Option B — start a new session on branch `<branch-slug>`:**
-- **Cloud (Claude Code on the web):** Launch a new session configured for branch `<branch-slug>` and send this as the first message:
-  ```
-  /plan $ARGUMENTS
-  ```
-- **Local (Claude Code CLI):** Run in your terminal, then start `claude`:
-  ```
-  git checkout <branch-slug>
-  ```
+**Start a new session on branch `<branch-slug>`:**
+- **Cloud:** Launch a new session on branch `<branch-slug>`, first message: `/plan $ARGUMENTS`
+- **Local:** `git checkout <branch-slug>` then start `claude`
 ---
 
 Rules you must follow:
