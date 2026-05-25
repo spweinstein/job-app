@@ -1,7 +1,6 @@
 {
   "ci": {
     "collect": {
-      "startServerCommand": "pnpm start",
       "url": ["http://localhost:3000/"]
     },
     "assert": {
