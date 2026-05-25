@@ -1,6 +1,6 @@
 # Agent Guide
 
-This document is the operating manual for AI coding agents implementing this application. It is the authoritative source of truth for all terminology, conventions, and execution rules. Every other document in `docs/` defers to definitions here.
+The authoritative source of truth for all terminology, conventions, and execution rules used across `docs/`.
 
 ---
 
@@ -18,7 +18,7 @@ This document is the operating manual for AI coding agents implementing this app
 
 ## Glossary
 
-All resource names, field names, role names, and domain concepts used across `docs/` are defined here. When another document uses any of these terms, it means exactly what is defined below.
+All terminology is binding. When another document uses a term defined here, it means exactly this.
 
 ### Roles
 
@@ -97,8 +97,7 @@ The `automations.action_type` column is restricted to this closed set:
 | **Fork** | A deep copy of a document's `content` JSON, a new row with `parent_id` set to the source document's `id`, and `root_id` carried from the source's `root_id`. |
 | **Ancestor** | Any document in the lineage chain reachable by following `parent_id` links toward the root. |
 | **Descendant** | Any document reachable by following forks away from a root. |
-
-Edits to a fork **never mutate ancestors**. This is enforced at the application layer and tested by integration tests.
+| **Invariant** | Edits to a fork never mutate ancestors; enforced at the application layer and tested by integration tests. |
 
 ### Resume Section Types
 
@@ -106,15 +105,15 @@ The `ResumeContentV1.sections[].type` field is restricted to this closed set (de
 
 | Section Type | Description |
 |---|---|
-| `contact_info` | Contact details (name, email, phone, location, LinkedIn, website). Exactly one required per resume; cannot be removed. |
-| `summary` | Professional summary. At most one per resume; may be removed. |
-| `work_experience` | Work history entries (company, title, dates, bullets). Zero or more per resume. |
-| `education` | Education entries (institution, degree, field, dates, GPA). Zero or more per resume. |
-| `skills` | Skill categories with item lists. Zero or more per resume. |
-| `certifications` | Certification entries (name, issuer, date). Zero or more per resume. |
-| `custom` | Free-form section (heading + body text). Zero or more per resume. |
+| `contact_info` | Contact details (name, email, phone, location, LinkedIn, website). Exactly one required; cannot be removed. |
+| `summary` | Professional summary. At most one; may be removed. |
+| `work_experience` | Work history entries (company, title, dates, bullets). Zero or more. |
+| `education` | Education entries (institution, degree, field, dates, GPA). Zero or more. |
+| `skills` | Skill categories with item lists. Zero or more. |
+| `certifications` | Certification entries (name, issuer, date). Zero or more. |
+| `custom` | Free-form section (heading + body text). Zero or more. |
 
-Invariants (enforced at application layer, not DB CHECK): exactly one `contact_info` must always be present; at most one `summary`; all other types may appear zero or more times. `order` values are re-indexed ascending on save.
+`order` values are re-indexed ascending on save. All invariants are enforced at the application layer, not by DB CHECK.
 
 ### Field Name Conventions
 

@@ -2,7 +2,17 @@
 
 All terminology defers to `docs/agent-guide.md#glossary`. Acceptance criteria references point to `docs/product-spec.md`. Schema references point to `docs/technical-spec.md`.
 
-Each phase anticipates a corresponding implementation prompt at `docs/prompts/<NN>-<feature-slug>.md`. Do not create those files now; they are out of scope for this document.
+Each phase anticipates a corresponding implementation prompt at `docs/prompts/<NN>-<feature-slug>.md`. Do not create those files now.
+
+---
+
+## Conventions for All Phases
+
+The following apply to every phase unless explicitly overridden:
+
+- **After every migration:** run `supabase gen types typescript --local > src/types/database.ts`.
+- **Default Definition of Done:** all cited acceptance criteria pass in the E2E suite; `tsc --noEmit` and `eslint .` exit 0; preview deploy green.
+- **State matrices:** verify all seven UI states (per `docs/product-spec.md`) for every screen introduced or modified in the phase.
 
 ---
 
@@ -120,17 +130,11 @@ From `docs/product-spec.md`:
 
 ### State Matrix Coverage
 
-Auth screens: all seven states per `docs/product-spec.md#auth-screens-login-signup-forgot-password-reset-password` must be covered.
-
-### Non-Goals
-
-- OAuth / social login.
-- Profile editing UI (Phase 7).
-- Multi-factor authentication.
+`/login`, `/signup`, `/forgot-password`, `/reset-password`
 
 ### Definition of Done
 
-All auth acceptance criteria from `docs/product-spec.md#auth` pass in Playwright. Middleware correctly gates all `(app)` routes. CI green.
+All auth acceptance criteria pass in Playwright. Middleware correctly gates all `(app)` routes.
 
 ---
 
@@ -157,7 +161,6 @@ Phase 1 complete.
 | Components | `CompanyCard`, `CompanyForm`, `CompanyDeleteDialog`, `CompanyList` in `src/components/companies/` |
 | Search | Client-side filter on company name (no server round-trip for this scale) |
 | Application count | Company detail page shows count via `SELECT count(*) FROM applications WHERE company_id = :id` |
-| Supabase types | Regenerate `src/types/database.ts` after migration |
 
 ### Acceptance Criteria (must pass)
 
@@ -175,17 +178,11 @@ From `docs/product-spec.md`:
 
 ### State Matrix Coverage
 
-`/companies` list: all seven states per `docs/product-spec.md#companies-list`.
-
-### Non-Goals
-
-- Bulk import of companies.
-- Company logo upload.
-- Company contacts (people at the company).
+`/companies`, `/companies/[id]`
 
 ### Definition of Done
 
-All companies acceptance criteria pass. Supabase types regenerated. CI green. Preview deploy shows Companies CRUD working.
+All companies acceptance criteria pass. Preview deploy shows Companies CRUD working.
 
 ---
 
@@ -212,7 +209,6 @@ Phase 2 complete.
 | Status selector | Dropdown or segmented control showing all status enum values; updates status via `updateApplication` action |
 | Filters | Status filter (multi-select), company filter (select) — both client-side |
 | Company selector | `createApplication` requires selecting an existing company from a dropdown (fetched server-side) |
-| Supabase types | Regenerate after migration |
 
 **Important:** The `automation_events` table must be created in this migration even though automations are not implemented until Phase 6. The trigger functions require the target table to exist.
 
@@ -232,17 +228,11 @@ From `docs/product-spec.md`:
 
 ### State Matrix Coverage
 
-`/applications` list: all seven states per `docs/product-spec.md#applications-list`.
-
-### Non-Goals
-
-- Attaching resume or cover letter to an application (Phase 4 adds this).
-- Automation action execution (Phase 6).
-- Kanban view.
+`/applications`, `/applications/[id]`
 
 ### Definition of Done
 
-All applications acceptance criteria pass. Triggers write correctly to `automation_events`. CI green.
+All applications acceptance criteria pass. Triggers write correctly to `automation_events`.
 
 ---
 
@@ -272,7 +262,6 @@ Phase 3 complete.
 | Fork lineage | Resumes list groups forks under their root. Detail page shows parent link and list of direct forks. |
 | Attachment upload | Optional DOCX or PDF upload in resume editor and cover letter editor; stored in `resume-attachments` and `cover-letter-attachments` buckets respectively; signed URL for download; stored path in `attachment_url` column |
 | Application wiring | Application detail page: resume selector dropdown + cover letter selector dropdown (set `resume_id` / `cover_letter_id` on application) |
-| Supabase types | Regenerate after migration |
 
 ### Acceptance Criteria (must pass)
 
@@ -292,17 +281,11 @@ From `docs/product-spec.md`:
 
 ### State Matrix Coverage
 
-`/resumes` list and `/cover-letters` list: all seven states.
-
-### Non-Goals
-
-- AI-assisted resume writing or optimization.
-- Export or generation of a file from the structured JSON content (the attached DOCX/PDF is a user-uploaded reference copy, not generated from the JSON).
-- Cover letter linked to a specific application at fork time is optional (user may fork without linking; linking is done from the application detail page).
+`/resumes`, `/resumes/[id]`, `/cover-letters`, `/cover-letters/[id]`
 
 ### Definition of Done
 
-All resumes and cover letters acceptance criteria pass, including section editor (add/remove/reorder) and section invariants. Fork semantics tested and passing. CI green.
+All resumes and cover letters acceptance criteria pass, including section editor (add/remove/reorder) and section invariants. Fork semantics tested and passing.
 
 ---
 
@@ -332,7 +315,6 @@ Phase 3 complete. (Phase 4 is not a prerequisite but should be merged first if r
 | Application filter | Dropdown to filter calendar items by linked application; updates URL param `?applicationId=<uuid>`; shows only items where `application_id` matches |
 | Task complete | Inline "Mark complete" button on task card; calls `completeTask` action. |
 | Application link | Interview create/edit form requires selecting an application (dropdown of user's applications). |
-| Supabase types | Regenerate after migration |
 
 ### Acceptance Criteria (must pass)
 
@@ -349,18 +331,11 @@ From `docs/product-spec.md`:
 
 ### State Matrix Coverage
 
-`/calendar` list, `/calendar/new`, `/calendar/[id]`, and `/calendar/[id]/edit`: all seven states per `docs/product-spec.md#state-matrices`.
-
-### Non-Goals
-
-- Recurring events.
-- External calendar sync (Google Calendar, iCal export).
-- Drag-and-drop rescheduling on the calendar grid.
-- Week view (month + list views only in scope; week view deferred indefinitely).
+`/calendar`, `/calendar/new`, `/calendar/[id]`, `/calendar/[id]/edit`
 
 ### Definition of Done
 
-All calendar items acceptance criteria pass. `interview_scheduled` trigger writes correctly. CI green.
+All calendar items acceptance criteria pass. `interview_scheduled` trigger writes correctly.
 
 ---
 
@@ -393,8 +368,6 @@ Phases 1–5 complete. (All trigger-emitting tables and their triggers must exis
 | Template substitution | Variables per `docs/technical-spec.md#automations-engine` |
 | Retry logic | 3 attempts, backoff 30s/5m/30m, dead-letter after 3 failures |
 | Idempotency | Check `automation_action_logs` for existing `succeeded` row before executing |
-| Rate limiting | N/A for actions; user-level spam prevention is achieved by only sending to the user's own email |
-| Supabase types | Regenerate after migration |
 
 ### Acceptance Criteria (must pass)
 
@@ -414,19 +387,11 @@ From `docs/product-spec.md`:
 
 ### State Matrix Coverage
 
-`/automations` list: all seven states per `docs/product-spec.md#automations-list`. `/automations/new`: all seven states per `docs/product-spec.md#automationsnew-create-automation-form`. `/automations/[id]`: all seven states per `docs/product-spec.md#automationsid-automation-detail--execution-history`. `/automations/[id]/edit`: all seven states per `docs/product-spec.md#automationsidedit-edit-automation`.
-
-### Non-Goals
-
-- Automation templates / gallery.
-- Webhook action type (not in the action type enum).
-- Slack/Teams notifications.
-- Automation scheduling (time-based triggers beyond `task_due_soon`).
-- Real-time execution feedback (polling the log table via client fetch is sufficient).
+`/automations`, `/automations/new`, `/automations/[id]`, `/automations/[id]/edit`
 
 ### Definition of Done
 
-All automations acceptance criteria pass. User journey 3 passes end-to-end in Playwright (including email delivery to Resend test inbox). Edge Function deploys successfully. CI green.
+All automations acceptance criteria pass. User journey 3 passes end-to-end in Playwright (including email delivery to Resend test inbox). Edge Function deploys successfully.
 
 ---
 
@@ -452,7 +417,6 @@ Phase 1 complete; Phase 4 must have merged (avatars bucket is created there). If
 | Pages | `/profile`, `/profile/change-password` |
 | Avatar upload | Client-side file input → `uploadAvatar` server action → signed URL → displayed in profile page and nav |
 | Notification preference | Toggle for `notification_email_enabled` on profile page; stored in `profiles` table. Automations engine checks this before sending email. |
-| Supabase types | Regenerate if schema changed |
 
 ### Acceptance Criteria (must pass)
 
@@ -468,18 +432,11 @@ From `docs/product-spec.md`:
 
 ### State Matrix Coverage
 
-`/profile`: all seven states per `docs/product-spec.md#profile-profile-edit`.
-
-### Non-Goals
-
-- Account deletion (flagged as Open Question in `docs/product-spec.md`).
-- OAuth provider linking.
-- Two-factor authentication.
-- Dark/light mode preference stored in profile (use OS preference via CSS `prefers-color-scheme`).
+`/profile`, `/profile/change-password`
 
 ### Definition of Done
 
-All profile acceptance criteria pass. Avatar upload/display works. Notification preference gates automation email sends. CI green.
+All profile acceptance criteria pass. Avatar upload/display works. Notification preference gates automation email sends.
 
 ---
 
@@ -516,13 +473,9 @@ Phases 1–7 complete.
 
 - E2E: new user sees CTA card in funnel area and empty messages in other widgets; user with data sees recent applications, upcoming items, and funnel chart with correct per-status counts; clicking a funnel bar navigates to `/applications?status=<status>`.
 
-### Non-Goals
-
-- Notifications panel.
-
 ### Definition of Done
 
-Dashboard renders correctly for new and existing users. New user sees CTA card in funnel area. Existing user sees funnel chart with all 9 statuses and correct counts; bar click navigates to filtered list. CI green. Preview deploy green.
+Dashboard renders correctly for new and existing users. New user sees CTA card in funnel area. Existing user sees funnel chart with all 9 statuses and correct counts; bar click navigates to filtered list.
 
 ---
 
@@ -556,21 +509,19 @@ Phase 0 (Foundation)
 
 ## Non-Goals (All Phases)
 
-These items are explicitly out of scope for all phases in this roadmap. Agents must not implement them without a spec change:
+These items are explicitly out of scope for all phases. Agents must not implement them without a spec change:
 
-| Non-Goal | Reason |
-|---|---|
-| OAuth / social login | Auth is email+password only in this version |
-| Multi-user sharing or collaboration | Single-user, single-owner data model |
-| Public job board scraping or auto-import | No external data sources |
-| AI-assisted writing | Out of scope for this version |
-| File generation from resume/cover letter JSON | Only optional DOCX/PDF upload and download; no generation from structured content |
-| Recurring calendar events | Not in the `calendar_items` schema |
-| External calendar sync (Google, iCal) | Out of scope |
-| Slack, Teams, or SMS notifications | Only email via Resend |
-| Webhook action type in automations | Not in the action type enum |
-| Admin role or super-user access | Single-role application |
-| Mobile native app | Web-only (responsive) |
-| Internationalization / localization | English only |
-| Offline mode with sync | Offline banner only; no local-first data layer |
-| Billing or subscription management | No paid tier in this version |
+- OAuth / social login
+- Multi-user sharing or collaboration
+- Public job board scraping or auto-import
+- AI-assisted writing
+- File generation from resume/cover letter JSON (DOCX/PDF is upload-only)
+- Recurring calendar events
+- External calendar sync (Google, iCal)
+- Slack, Teams, or SMS notifications
+- Webhook action type in automations
+- Admin role or super-user access
+- Mobile native app (web-only, responsive)
+- Internationalization / localization
+- Offline mode with sync
+- Billing or subscription management

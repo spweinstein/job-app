@@ -62,25 +62,7 @@ All terminology defers to `docs/agent-guide.md#glossary`. All resource names, fi
 | Error reporting | Sentry | 8.x |
 | Dependency updates | Renovate (configured to auto-merge patch, PR for minor/major) | Latest |
 
-**TypeScript config requirements (`tsconfig.json`):**
-
-```json
-{
-  "compilerOptions": {
-    "strict": true,
-    "noUncheckedIndexedAccess": true,
-    "noEmit": true,
-    "target": "ES2022",
-    "lib": ["ES2022", "DOM", "DOM.Iterable"],
-    "module": "ESNext",
-    "moduleResolution": "Bundler",
-    "jsx": "preserve",
-    "incremental": true,
-    "plugins": [{ "name": "next" }],
-    "paths": { "@/*": ["./src/*"] }
-  }
-}
-```
+**TypeScript config requirements:** `strict: true`, `noUncheckedIndexedAccess: true`, `noEmit: true`, target ES2022, `moduleResolution: Bundler`, `paths: { "@/*": ["./src/*"] }`, Next.js plugin enabled.
 
 ---
 
@@ -179,23 +161,11 @@ All terminology defers to `docs/agent-guide.md#glossary`. All resource names, fi
 
 ## Data Model
 
-For every table: columns (Postgres type, nullability, default), foreign keys, indexes, check constraints, and exact RLS policies as SQL.
+For every table: columns (Postgres type, nullability, default), foreign keys, indexes, check constraints, and RLS rules.
 
 The Supabase-generated TypeScript types live at `src/types/database.ts`. Never hand-edit this file; regenerate with `supabase gen types typescript --local > src/types/database.ts`.
 
-All tables live in the `public` schema unless noted. All `updated_at` columns are kept current by a shared trigger function:
-
-```sql
-CREATE OR REPLACE FUNCTION public.set_updated_at()
-RETURNS TRIGGER LANGUAGE plpgsql AS $$
-BEGIN
-  NEW.updated_at = now();
-  RETURN NEW;
-END;
-$$;
-```
-
-Apply `CREATE TRIGGER set_updated_at BEFORE UPDATE ON public.<table> FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();` on every table that has `updated_at`.
+All tables live in the `public` schema. All `updated_at` columns are kept current by a shared `set_updated_at()` BEFORE UPDATE trigger function (increments `updated_at = now()` on every row update). Apply this trigger to every table that has `updated_at`.
 
 ---
 
@@ -206,7 +176,7 @@ Apply `CREATE TRIGGER set_updated_at BEFORE UPDATE ON public.<table> FOR EACH RO
 | Column | Type | Nullable | Default | Notes |
 |---|---|---|---|---|
 | `id` | `uuid` | NOT NULL | — | PK; equals `auth.users.id` |
-| `full_name` | `text` | NOT NULL | `''` | Display name |
+| `full_name` | `text` | NOT NULL | `''` | |
 | `avatar_url` | `text` | NULL | — | Storage public URL |
 | `notification_email_enabled` | `boolean` | NOT NULL | `true` | Whether automations may send email |
 | `created_at` | `timestamptz` | NOT NULL | `now()` | |
@@ -219,49 +189,16 @@ Apply `CREATE TRIGGER set_updated_at BEFORE UPDATE ON public.<table> FOR EACH RO
 
 **Indexes:** None beyond PK (single-row-per-user access pattern).
 
-**Trigger:** Created automatically on `auth.users` INSERT via:
+**Trigger:** AFTER INSERT on `auth.users` (SECURITY DEFINER): inserts a `profiles` row with `id = NEW.id` and `full_name` from `raw_user_meta_data`, defaulting to `''`.
 
-```sql
-CREATE OR REPLACE FUNCTION public.handle_new_user()
-RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
-BEGIN
-  INSERT INTO public.profiles (id, full_name)
-  VALUES (NEW.id, COALESCE(NEW.raw_user_meta_data->>'full_name', ''));
-  RETURN NEW;
-END;
-$$;
+**RLS:**
 
-CREATE TRIGGER on_auth_user_created
-  AFTER INSERT ON auth.users
-  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
-```
-
-**RLS Policies:**
-
-```sql
-ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
-
--- SELECT: users can read only their own profile
-CREATE POLICY "profiles_select_own"
-  ON public.profiles FOR SELECT
-  USING (auth.uid() = id);
-
--- INSERT: denied; handled by trigger with SECURITY DEFINER
-CREATE POLICY "profiles_insert_deny"
-  ON public.profiles FOR INSERT
-  WITH CHECK (false);
-
--- UPDATE: users can update only their own profile
-CREATE POLICY "profiles_update_own"
-  ON public.profiles FOR UPDATE
-  USING (auth.uid() = id)
-  WITH CHECK (auth.uid() = id);
-
--- DELETE: denied; profile is deleted via cascade from auth.users
-CREATE POLICY "profiles_delete_deny"
-  ON public.profiles FOR DELETE
-  USING (false);
-```
+| Operation | Rule |
+|---|---|
+| SELECT | Own profile only (`id = auth.uid()`) |
+| INSERT | Denied — row created by the `auth.users` INSERT trigger |
+| UPDATE | Own profile only |
+| DELETE | Denied — cascades from `auth.users` deletion |
 
 ---
 
@@ -287,28 +224,7 @@ CREATE POLICY "profiles_delete_deny"
 **Indexes:**
 - `idx_companies_user_id` ON `companies(user_id)`
 
-**RLS Policies:**
-
-```sql
-ALTER TABLE public.companies ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "companies_select_own"
-  ON public.companies FOR SELECT
-  USING (auth.uid() = user_id);
-
-CREATE POLICY "companies_insert_own"
-  ON public.companies FOR INSERT
-  WITH CHECK (auth.uid() = user_id);
-
-CREATE POLICY "companies_update_own"
-  ON public.companies FOR UPDATE
-  USING (auth.uid() = user_id)
-  WITH CHECK (auth.uid() = user_id);
-
-CREATE POLICY "companies_delete_own"
-  ON public.companies FOR DELETE
-  USING (auth.uid() = user_id);
-```
+**RLS:** Own rows only for SELECT, INSERT, UPDATE, DELETE (`user_id = auth.uid()`).
 
 ---
 
@@ -331,16 +247,7 @@ CREATE POLICY "companies_delete_own"
 | `created_at` | `timestamptz` | NOT NULL | `now()` | |
 | `updated_at` | `timestamptz` | NOT NULL | `now()` | |
 
-**Check Constraints:**
-
-```sql
-CONSTRAINT applications_status_check CHECK (
-  status IN (
-    'draft','applied','screening','interviewing',
-    'offer','negotiating','accepted','rejected','withdrawn'
-  )
-)
-```
+**Check Constraints:** `status` must be one of the 9 values defined in `docs/agent-guide.md#application-statuses`.
 
 **Foreign Keys:**
 - `user_id` → `auth.users(id)` ON DELETE CASCADE
@@ -353,95 +260,12 @@ CONSTRAINT applications_status_check CHECK (
 - `idx_applications_company_id` ON `applications(company_id)`
 - `idx_applications_status` ON `applications(user_id, status)`
 
-**RLS Policies:**
+**RLS:** Own rows only for SELECT, INSERT, UPDATE, DELETE (`user_id = auth.uid()`).
 
-```sql
-ALTER TABLE public.applications ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "applications_select_own"
-  ON public.applications FOR SELECT
-  USING (auth.uid() = user_id);
-
-CREATE POLICY "applications_insert_own"
-  ON public.applications FOR INSERT
-  WITH CHECK (auth.uid() = user_id);
-
-CREATE POLICY "applications_update_own"
-  ON public.applications FOR UPDATE
-  USING (auth.uid() = user_id)
-  WITH CHECK (auth.uid() = user_id);
-
-CREATE POLICY "applications_delete_own"
-  ON public.applications FOR DELETE
-  USING (auth.uid() = user_id);
-```
-
-**Automation trigger (status change):**
-
-```sql
-CREATE OR REPLACE FUNCTION public.emit_application_status_changed()
-RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
-BEGIN
-  IF OLD.status IS DISTINCT FROM NEW.status THEN
-    INSERT INTO public.automation_events (
-      user_id, trigger_type, payload
-    ) VALUES (
-      NEW.user_id,
-      'application_status_changed',
-      jsonb_build_object(
-        'application_id', NEW.id,
-        'old_status', OLD.status,
-        'new_status', NEW.status
-      )
-    );
-  END IF;
-  RETURN NEW;
-END;
-$$;
-
-CREATE TRIGGER applications_status_changed
-  AFTER UPDATE ON public.applications
-  FOR EACH ROW EXECUTE FUNCTION public.emit_application_status_changed();
-```
-
-**Automation trigger (`application_created`):**
-
-```sql
-CREATE OR REPLACE FUNCTION public.emit_application_created()
-RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
-BEGIN
-  INSERT INTO public.automation_events (user_id, trigger_type, payload)
-  VALUES (
-    NEW.user_id,
-    'application_created',
-    jsonb_build_object('application_id', NEW.id)
-  );
-  RETURN NEW;
-END;
-$$;
-
-CREATE TRIGGER applications_created
-  AFTER INSERT ON public.applications
-  FOR EACH ROW EXECUTE FUNCTION public.emit_application_created();
-```
-
-**`applied_at` trigger (sets timestamp on first transition to `'applied'`):**
-
-```sql
-CREATE OR REPLACE FUNCTION public.set_applied_at()
-RETURNS TRIGGER LANGUAGE plpgsql AS $$
-BEGIN
-  IF NEW.status = 'applied' AND (TG_OP = 'INSERT' OR OLD.status IS DISTINCT FROM 'applied') THEN
-    NEW.applied_at = now();
-  END IF;
-  RETURN NEW;
-END;
-$$;
-
-CREATE TRIGGER applications_set_applied_at
-  BEFORE INSERT OR UPDATE ON public.applications
-  FOR EACH ROW EXECUTE FUNCTION public.set_applied_at();
-```
+**Triggers:**
+- AFTER UPDATE (SECURITY DEFINER): if `status` changed, inserts a row into `automation_events` with `trigger_type = 'application_status_changed'` and payload `{application_id, old_status, new_status}`.
+- AFTER INSERT (SECURITY DEFINER): inserts a row into `automation_events` with `trigger_type = 'application_created'` and payload `{application_id}`.
+- BEFORE INSERT OR UPDATE: if `status = 'applied'` and the previous status was not `'applied'` (or this is an INSERT), sets `applied_at = now()`.
 
 ---
 
@@ -474,30 +298,9 @@ CREATE TRIGGER applications_set_applied_at
 - `idx_resumes_root_id` ON `resumes(root_id)`
 - `idx_resumes_parent_id` ON `resumes(parent_id)` WHERE `parent_id IS NOT NULL`
 
-**RLS Policies:**
+**RLS:** Own rows only for SELECT, INSERT, UPDATE, DELETE (`user_id = auth.uid()`).
 
-```sql
-ALTER TABLE public.resumes ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "resumes_select_own"
-  ON public.resumes FOR SELECT
-  USING (auth.uid() = user_id);
-
-CREATE POLICY "resumes_insert_own"
-  ON public.resumes FOR INSERT
-  WITH CHECK (auth.uid() = user_id);
-
-CREATE POLICY "resumes_update_own"
-  ON public.resumes FOR UPDATE
-  USING (auth.uid() = user_id)
-  WITH CHECK (auth.uid() = user_id);
-
-CREATE POLICY "resumes_delete_own"
-  ON public.resumes FOR DELETE
-  USING (auth.uid() = user_id);
-```
-
-**Note:** The RESTRICT FK on `parent_id` prevents DB-level deletion of a parent while forks exist, which surfaces as a Postgres error. The application layer must check for descendants before attempting delete and return a user-friendly error (see `docs/product-spec.md#resumes--delete`).
+**Note:** The RESTRICT FK on `parent_id` surfaces as a Postgres error when deleting a parent with forks. The application layer must check for descendants before attempting delete and return a user-friendly error (see `docs/product-spec.md#resumes--delete`).
 
 ---
 
@@ -530,9 +333,9 @@ CREATE POLICY "resumes_delete_own"
 - `idx_cover_letters_root_id` ON `cover_letters(root_id)`
 - `idx_cover_letters_parent_id` ON `cover_letters(parent_id)` WHERE `parent_id IS NOT NULL`
 
-**RLS Policies:** Identical to `resumes` — substitute `cover_letters` for `resumes` in every policy name and table reference.
+**RLS:** Identical to `resumes` — own rows only for SELECT, INSERT, UPDATE, DELETE.
 
-**Note:** The RESTRICT FK on `parent_id` prevents DB-level deletion while forks exist. The application layer checks for descendants before attempting delete and returns a user-friendly error.
+**Note:** RESTRICT FK on `parent_id` — same behavior as `resumes`. Application layer checks for descendants before delete.
 
 No Postgres triggers. The automation trigger for `application_created` fires on `applications` INSERT, not on cover letters.
 
@@ -558,21 +361,10 @@ No Postgres triggers. The automation trigger for `application_created` fires on 
 | `updated_at` | `timestamptz` | NOT NULL | `now()` | |
 
 **Check Constraints:**
-
-```sql
-CONSTRAINT calendar_items_kind_check CHECK (
-  kind IN ('task', 'event', 'meeting', 'interview')
-),
-CONSTRAINT calendar_items_interview_requires_application CHECK (
-  kind != 'interview' OR application_id IS NOT NULL
-),
-CONSTRAINT calendar_items_timed_kinds_require_start CHECK (
-  kind = 'task' OR start_at IS NOT NULL
-),
-CONSTRAINT calendar_items_end_after_start CHECK (
-  end_at IS NULL OR start_at IS NULL OR end_at > start_at
-)
-```
+- `kind` must be one of the 4 values defined in `docs/agent-guide.md#calendar-item-kinds`.
+- `kind = 'interview'` requires `application_id IS NOT NULL`.
+- `kind` ∈ {event, meeting, interview} requires `start_at IS NOT NULL`.
+- `end_at > start_at` (strict; zero-duration events are invalid).
 
 **`due_at` validation note:** `createCalendarItemSchema` must include `.refine(val => val == null || val > new Date(), { message: "Due date must be in the future." })` on `due_at`. The `updateCalendarItemSchema` omits this refine — past due dates are valid on edit (allows backdating overdue tasks).
 
@@ -586,56 +378,9 @@ CONSTRAINT calendar_items_end_after_start CHECK (
 - `idx_calendar_items_start_at` ON `calendar_items(user_id, start_at)` WHERE `start_at IS NOT NULL`
 - `idx_calendar_items_due_at` ON `calendar_items(user_id, due_at)` WHERE `due_at IS NOT NULL`
 
-**RLS Policies:**
+**RLS:** Own rows only for SELECT, INSERT, UPDATE, DELETE (`user_id = auth.uid()`).
 
-```sql
-ALTER TABLE public.calendar_items ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "calendar_items_select_own"
-  ON public.calendar_items FOR SELECT
-  USING (auth.uid() = user_id);
-
-CREATE POLICY "calendar_items_insert_own"
-  ON public.calendar_items FOR INSERT
-  WITH CHECK (auth.uid() = user_id);
-
-CREATE POLICY "calendar_items_update_own"
-  ON public.calendar_items FOR UPDATE
-  USING (auth.uid() = user_id)
-  WITH CHECK (auth.uid() = user_id);
-
-CREATE POLICY "calendar_items_delete_own"
-  ON public.calendar_items FOR DELETE
-  USING (auth.uid() = user_id);
-```
-
-**Automation trigger (interview scheduled):**
-
-```sql
-CREATE OR REPLACE FUNCTION public.emit_interview_scheduled()
-RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
-BEGIN
-  IF NEW.kind = 'interview' THEN
-    INSERT INTO public.automation_events (
-      user_id, trigger_type, payload
-    ) VALUES (
-      NEW.user_id,
-      'interview_scheduled',
-      jsonb_build_object(
-        'calendar_item_id', NEW.id,
-        'application_id', NEW.application_id,
-        'start_at', NEW.start_at
-      )
-    );
-  END IF;
-  RETURN NEW;
-END;
-$$;
-
-CREATE TRIGGER calendar_items_interview_scheduled
-  AFTER INSERT ON public.calendar_items
-  FOR EACH ROW EXECUTE FUNCTION public.emit_interview_scheduled();
-```
+**Trigger:** AFTER INSERT (SECURITY DEFINER): if `kind = 'interview'`, inserts a row into `automation_events` with `trigger_type = 'interview_scheduled'` and payload `{calendar_item_id, application_id, start_at}`.
 
 ---
 
@@ -657,42 +402,7 @@ CREATE TRIGGER calendar_items_interview_scheduled
 | `created_at` | `timestamptz` | NOT NULL | `now()` | |
 | `updated_at` | `timestamptz` | NOT NULL | `now()` | |
 
-**Check Constraints:**
-
-```sql
-CONSTRAINT automations_trigger_type_check CHECK (
-  trigger_type IN (
-    'application_status_changed',
-    'application_created',
-    'interview_scheduled',
-    'task_due_soon'
-  )
-),
-CONSTRAINT automations_action_type_check CHECK (
-  action_type IN (
-    'send_email',
-    'create_task',
-    'update_application_status'
-  )
-)
-```
-
-**`trigger_config` shape per trigger type:**
-
-| Trigger Type | Config Shape |
-|---|---|
-| `application_status_changed` | `{ "to_status": "<status_enum_value>" }` — fires only when target status matches. Use `"to_status": "*"` for any status. |
-| `application_created` | `{}` — no condition; fires on every new application. |
-| `interview_scheduled` | `{}` — no condition; fires on every new interview. |
-| `task_due_soon` | `{ "hours_before": 24 }` — checked by a cron Edge Function. |
-
-**`action_config` shape per action type:**
-
-| Action Type | Config Shape |
-|---|---|
-| `send_email` | `{ "subject": "string", "body": "string" }` — supports template variables (see [Automations Engine](#automations-engine)). |
-| `create_task` | `{ "title": "string", "due_offset_hours": number \| null }` — `due_offset_hours` added to `now()` if set. |
-| `update_application_status` | `{ "to_status": "<status_enum_value>" }` — the target status. |
+**Check Constraints:** `trigger_type` must be one of the 4 values in `docs/agent-guide.md#automation-trigger-types`; `action_type` must be one of the 3 values in `docs/agent-guide.md#automation-action-types`. See [Automations Engine](#automations-engine) for `trigger_config` and `action_config` payload shapes per type.
 
 **Foreign Keys:**
 - `user_id` → `auth.users(id)` ON DELETE CASCADE
@@ -701,28 +411,7 @@ CONSTRAINT automations_action_type_check CHECK (
 - `idx_automations_user_id` ON `automations(user_id)`
 - `idx_automations_trigger_type` ON `automations(trigger_type)` WHERE `enabled = true`
 
-**RLS Policies:**
-
-```sql
-ALTER TABLE public.automations ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "automations_select_own"
-  ON public.automations FOR SELECT
-  USING (auth.uid() = user_id);
-
-CREATE POLICY "automations_insert_own"
-  ON public.automations FOR INSERT
-  WITH CHECK (auth.uid() = user_id);
-
-CREATE POLICY "automations_update_own"
-  ON public.automations FOR UPDATE
-  USING (auth.uid() = user_id)
-  WITH CHECK (auth.uid() = user_id);
-
-CREATE POLICY "automations_delete_own"
-  ON public.automations FOR DELETE
-  USING (auth.uid() = user_id);
-```
+**RLS:** Own rows only for SELECT, INSERT, UPDATE, DELETE (`user_id = auth.uid()`).
 
 ---
 
@@ -744,18 +433,7 @@ Immutable log. No UPDATE or DELETE from application code.
 
 **Unique Constraint:** `UNIQUE (idempotency_key)`
 
-**Check Constraints:**
-
-```sql
-CONSTRAINT automation_events_trigger_type_check CHECK (
-  trigger_type IN (
-    'application_status_changed',
-    'application_created',
-    'interview_scheduled',
-    'task_due_soon'
-  )
-)
-```
+**Check Constraints:** `trigger_type` must be one of the 4 values in `docs/agent-guide.md#automation-trigger-types`.
 
 **Foreign Keys:**
 - `user_id` → `auth.users(id)` ON DELETE CASCADE
@@ -764,31 +442,14 @@ CONSTRAINT automation_events_trigger_type_check CHECK (
 - `idx_automation_events_unprocessed` ON `automation_events(created_at)` WHERE `processed_at IS NULL`
 - `idx_automation_events_user_id` ON `automation_events(user_id)`
 
-**RLS Policies:**
+**RLS:**
 
-```sql
-ALTER TABLE public.automation_events ENABLE ROW LEVEL SECURITY;
-
--- SELECT: users can read their own events (for UI display)
-CREATE POLICY "automation_events_select_own"
-  ON public.automation_events FOR SELECT
-  USING (auth.uid() = user_id);
-
--- INSERT: denied from client; rows are inserted by SECURITY DEFINER trigger functions only
-CREATE POLICY "automation_events_insert_deny"
-  ON public.automation_events FOR INSERT
-  WITH CHECK (false);
-
--- UPDATE: denied from client; processed_at set by Edge Function via service role key
-CREATE POLICY "automation_events_update_deny"
-  ON public.automation_events FOR UPDATE
-  USING (false);
-
--- DELETE: denied
-CREATE POLICY "automation_events_delete_deny"
-  ON public.automation_events FOR DELETE
-  USING (false);
-```
+| Operation | Rule |
+|---|---|
+| SELECT | Own rows only (`user_id = auth.uid()`) |
+| INSERT | Denied — rows written only by SECURITY DEFINER trigger functions |
+| UPDATE | Denied — `processed_at` updated only by Edge Function via service role |
+| DELETE | Denied |
 
 ---
 
@@ -810,16 +471,7 @@ Immutable log. No UPDATE or DELETE from application code.
 | `error_message` | `text` | NULL | — | Set on failure |
 | `executed_at` | `timestamptz` | NOT NULL | `now()` | |
 
-**Check Constraints:**
-
-```sql
-CONSTRAINT automation_action_logs_action_type_check CHECK (
-  action_type IN ('send_email', 'create_task', 'update_application_status')
-),
-CONSTRAINT automation_action_logs_status_check CHECK (
-  status IN ('succeeded', 'failed', 'retrying', 'skipped')
-)
-```
+**Check Constraints:** `action_type` constrained to the 3 values in `docs/agent-guide.md#automation-action-types`; `status` ∈ `{'succeeded', 'failed', 'retrying', 'skipped'}`.
 
 **Foreign Keys:**
 - `user_id` → `auth.users(id)` ON DELETE CASCADE
@@ -830,27 +482,14 @@ CONSTRAINT automation_action_logs_status_check CHECK (
 - `idx_action_logs_automation_id` ON `automation_action_logs(automation_id, executed_at DESC)`
 - `idx_action_logs_user_id` ON `automation_action_logs(user_id)`
 
-**RLS Policies:**
+**RLS:**
 
-```sql
-ALTER TABLE public.automation_action_logs ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "action_logs_select_own"
-  ON public.automation_action_logs FOR SELECT
-  USING (auth.uid() = user_id);
-
-CREATE POLICY "action_logs_insert_deny"
-  ON public.automation_action_logs FOR INSERT
-  WITH CHECK (false);
-
-CREATE POLICY "action_logs_update_deny"
-  ON public.automation_action_logs FOR UPDATE
-  USING (false);
-
-CREATE POLICY "action_logs_delete_deny"
-  ON public.automation_action_logs FOR DELETE
-  USING (false);
-```
+| Operation | Rule |
+|---|---|
+| SELECT | Own rows only (`user_id = auth.uid()`) |
+| INSERT | Denied — written only by Edge Function via service role |
+| UPDATE | Denied |
+| DELETE | Denied |
 
 ---
 
@@ -881,10 +520,7 @@ CREATE POLICY "action_logs_delete_deny"
 2. If the request path is not in the public routes list (`/login`, `/signup`, `/forgot-password`, `/reset-password`) and there is no valid session, redirect to `/login?redirect=<originalPath>`.
 3. Public routes list is a hard-coded constant in `middleware.ts`; do not derive it dynamically.
 
-**Public routes constant:**
-```typescript
-const PUBLIC_ROUTES = ['/login', '/signup', '/forgot-password', '/reset-password'];
-```
+**Public routes** (hard-coded constant in `middleware.ts`): `/login`, `/signup`, `/forgot-password`, `/reset-password`.
 
 **Password reset flow:**
 1. User submits `/forgot-password` → server action calls `supabase.auth.resetPasswordForEmail(email, { redirectTo: process.env.NEXT_PUBLIC_APP_URL + '/reset-password' })`.
@@ -903,40 +539,12 @@ const PUBLIC_ROUTES = ['/login', '/signup', '/forgot-password', '/reset-password
 
 **Secondary enforcement: application layer.** Every server action that operates on a specific resource by ID re-fetches the row with the user's session before performing the operation. If the row does not exist or `user_id` does not match `auth.uid()`, the action returns `FORBIDDEN` (not `NOT_FOUND`) — both cases return the same error to prevent resource enumeration.
 
-**Worked example — `updateCompany` server action:**
+**Worked example — `updateCompany` server action (behavioral description):**
 
-```typescript
-// src/actions/companies.ts
-export async function updateCompany(id: string, data: UpdateCompanyInput) {
-  const supabase = await createServerClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: { code: 'UNAUTHENTICATED', message: 'Not authenticated.' } };
-
-  // Re-check ownership (RLS enforces this at DB level; this is defensive)
-  const { data: company } = await supabase
-    .from('companies')
-    .select('id, user_id')
-    .eq('id', id)
-    .single();
-
-  if (!company || company.user_id !== user.id) {
-    return { error: { code: 'FORBIDDEN', message: 'Not found.' } };
-  }
-
-  const { error } = await supabase
-    .from('companies')
-    .update({ name: data.name, website: data.website, notes: data.notes })
-    .eq('id', id);
-
-  if (error) {
-    logger.error('updateCompany failed', { error, userId: user.id, companyId: id });
-    return { error: { code: 'INTERNAL_ERROR', message: 'Could not update company.' } };
-  }
-
-  revalidatePath(`/companies/${id}`);
-  return { data: { id } };
-}
-```
+1. Call `supabase.auth.getUser()`; if no user return `{ error: { code: 'UNAUTHENTICATED' } }`.
+2. SELECT the row by `id`; if absent or `user_id ≠ auth.uid()` return `{ error: { code: 'FORBIDDEN', message: 'Not found.' } }` (same response for both — prevents enumeration).
+3. Run the UPDATE. On DB error, log with `logger.error` and return `{ error: { code: 'INTERNAL_ERROR' } }`.
+4. On success, call `revalidatePath('/companies/[id]')` and return `{ data: { id } }`.
 
 **Edge Functions** use the `SUPABASE_SERVICE_ROLE_KEY` to bypass RLS for: writing `automation_action_logs`, updating `automation_events.processed_at`, and updating `automations.last_fired_at`. Service role access is limited to these three tables and only from Edge Functions.
 
@@ -963,20 +571,7 @@ All server actions live in `src/actions/<resource>.ts`. Each action:
 - Calls `revalidatePath` or `revalidateTag` on success.
 - Logs errors via `src/lib/logger.ts`.
 
-**Input validation pattern:**
-
-```typescript
-const parsed = createCompanySchema.safeParse(rawInput);
-if (!parsed.success) {
-  return {
-    error: {
-      code: 'VALIDATION_ERROR',
-      message: 'Invalid input.',
-      details: parsed.error.flatten().fieldErrors,
-    },
-  };
-}
-```
+All server actions validate with `schema.safeParse(rawInput)` and return `{ error: { code: 'VALIDATION_ERROR', message: 'Invalid input.', details: fieldErrors } }` on failure.
 
 ### Action Inventory
 
@@ -1027,36 +622,13 @@ if (!parsed.success) {
 
 ## Error Contract
 
-**Canonical error shape** (TypeScript):
+**Canonical error shape:**
 
-```typescript
-type AppError = {
-  code: ErrorCode;
-  message: string;      // Human-readable; safe to display to user
-  details?: Record<string, string[]>;  // Field-level validation errors (VALIDATION_ERROR only)
-};
+`AppError`: `{ code: ErrorCode, message: string, details?: Record<string, string[]> }` — `message` is user-safe; `details` contains field-level errors for `VALIDATION_ERROR` only.
 
-type ActionResult<T> = { data: T; error?: never } | { error: AppError; data?: never };
-```
+`ActionResult<T>`: either `{ data: T }` or `{ error: AppError }` — never both.
 
-**`ErrorCode` enum** (in `src/lib/errors.ts`):
-
-```typescript
-export const ErrorCode = {
-  UNAUTHENTICATED: 'UNAUTHENTICATED',
-  FORBIDDEN: 'FORBIDDEN',
-  NOT_FOUND: 'NOT_FOUND',
-  VALIDATION_ERROR: 'VALIDATION_ERROR',
-  CONFLICT: 'CONFLICT',
-  RATE_LIMITED: 'RATE_LIMITED',
-  UPSTREAM_ERROR: 'UPSTREAM_ERROR',
-  INTERNAL_ERROR: 'INTERNAL_ERROR',
-} as const;
-
-export type ErrorCode = typeof ErrorCode[keyof typeof ErrorCode];
-```
-
-All eight codes are defined in `docs/agent-guide.md#error-codes`. No new codes without a spec change. Client components switch on `error.code` to determine UI behavior.
+**`ErrorCode`** is a `const` object in `src/lib/errors.ts`. All eight codes are defined in `docs/agent-guide.md#error-codes`. No new codes without a spec change. Client components switch on `error.code` to determine UI behavior.
 
 **HTTP status codes for Route Handlers** (map from `ErrorCode`):
 
@@ -1111,180 +683,53 @@ Server Actions do not return HTTP status codes; they return `ActionResult<T>` ob
 
 ## Resume and Cover Letter Content Model
 
-**Storage representation:** Structured JSON (versioned schema). Rejected alternative: rich-text (ProseMirror/Tiptap HTML) — rejected because structured JSON enables field-level AI assistance, type-safe editing, and clean export without HTML parsing.
+**Storage representation:** Structured JSON (versioned schema), enabling field-level editing and type-safe operations.
 
-**Content schema version 1** (stored in `content_version = 1`):
+**Content schema version 1** (`content_version = 1`). Types live in `src/types/index.ts`. The valid `SectionType` values are defined in `docs/agent-guide.md#resume-section-types`.
 
-Each resume is a flat array of typed sections. Section types are a closed set. The UI renders sections in ascending `order` and allows users to add, remove, and reorder them. See `docs/agent-guide.md#resume-section-types` for the closed set of valid `SectionType` values.
+Each resume has a `sections` array. Every section shares base fields: `id` (client-generated UUID, stable React key), `type` (SectionType), `title` (user-editable string), `order` (integer, sort ascending, need not be contiguous). Each section type adds its own data fields:
 
-```typescript
-// Lives in src/types/index.ts
+| Section type | Additional fields |
+|---|---|
+| `contact_info` | `data`: fullName (string), email (string), phone (string\|null), location (string\|null), linkedinUrl (string\|null), websiteUrl (string\|null) |
+| `summary` | `entries`: array of exactly one `{id, text}` |
+| `work_experience` | `entries`: array of `{id, company, title, startDate (YYYY-MM), endDate (YYYY-MM\|null = "Present"), bullets (string[])}` |
+| `education` | `entries`: array of `{id, institution, degree, field?, startDate, endDate?, gpa?}` |
+| `skills` | `entries`: array of `{id, category, items (string[])}` |
+| `certifications` | `entries`: array of `{id, name, issuer, date?}` |
+| `custom` | `entries`: array of `{id, heading?, body (plain text)}` |
 
-type SectionType =
-  | 'contact_info'
-  | 'summary'
-  | 'work_experience'
-  | 'education'
-  | 'skills'
-  | 'certifications'
-  | 'custom';
+**Section invariants** (enforced by `updateResume`, not DB CHECK):
+- Exactly one `contact_info` must be present; it cannot be removed.
+- At most one `summary` may exist; it may be removed.
+- All other section types may appear zero or more times.
+- On save: `order` values are re-indexed to `0, 1, 2, …` in visual order.
 
-type BaseSection = {
-  id: string;     // client-generated UUID; stable React list key
-  type: SectionType;
-  title: string;  // user-editable label, e.g. "Work Experience" or "Projects"
-  order: number;  // integer; sort ascending; need not be contiguous
-};
+**Default initial content** (populated by `createResume`): 4 sections in order — `contact_info` (all fields empty/null), `summary` (one empty entry), `work_experience` (empty entries array), `education` (empty entries array).
 
-type ContactInfoSection = BaseSection & {
-  type: 'contact_info';
-  data: {
-    fullName: string;
-    email: string;
-    phone: string | null;
-    location: string | null;
-    linkedinUrl: string | null;
-    websiteUrl: string | null;
-  };
-};
+**Cover letter content schema version 1** (flat structure, unchanged by the resume section redesign):
 
-type SummarySection = BaseSection & {
-  type: 'summary';
-  entries: [{ id: string; text: string }]; // exactly one entry; tuple enforces this
-};
+| Field | Type |
+|---|---|
+| `schemaVersion` | `1` |
+| `recipientName` | `string \| null` |
+| `recipientTitle` | `string \| null` |
+| `companyName` | `string \| null` |
+| `date` | `string \| null` (YYYY-MM-DD) |
+| `salutation` | `string` (e.g., "Dear Hiring Manager,") |
+| `body` | `string[]` (array of plain-text paragraphs) |
+| `closing` | `string` (e.g., "Sincerely,") |
+| `senderName` | `string` |
 
-type WorkExperienceSection = BaseSection & {
-  type: 'work_experience';
-  entries: Array<{
-    id: string;
-    company: string;
-    title: string;
-    startDate: string;        // "YYYY-MM"
-    endDate: string | null;   // null = "Present"
-    bullets: string[];
-  }>;
-};
+**Schema migration:** When `content_version` increments, write a migration function in `src/lib/content-migrations.ts` that accepts any version and returns the latest. `updateResume` and `updateCoverLetter` must migrate content before saving if the stored version is stale.
 
-type EducationSection = BaseSection & {
-  type: 'education';
-  entries: Array<{
-    id: string;
-    institution: string;
-    degree: string;
-    field: string | null;
-    startDate: string;
-    endDate: string | null;
-    gpa: string | null;
-  }>;
-};
-
-type SkillsSection = BaseSection & {
-  type: 'skills';
-  entries: Array<{
-    id: string;
-    category: string;
-    items: string[];
-  }>;
-};
-
-type CertificationsSection = BaseSection & {
-  type: 'certifications';
-  entries: Array<{
-    id: string;
-    name: string;
-    issuer: string;
-    date: string | null;
-  }>;
-};
-
-type CustomSection = BaseSection & {
-  type: 'custom';
-  entries: Array<{
-    id: string;
-    heading: string | null;
-    body: string; // plain text paragraph
-  }>;
-};
-
-export type ResumeSection =
-  | ContactInfoSection
-  | SummarySection
-  | WorkExperienceSection
-  | EducationSection
-  | SkillsSection
-  | CertificationsSection
-  | CustomSection;
-
-export type ResumeContentV1 = {
-  schemaVersion: 1;
-  sections: ResumeSection[];
-};
-```
-
-**Section invariants** (enforced by `updateResume` server action, not DB CHECK):
-- Exactly one `contact_info` section must be present at all times. It cannot be removed.
-- At most one `summary` section may exist. It may be removed entirely.
-- All other section types may appear zero or more times (e.g., two `work_experience` sections is valid).
-- On save: `order` values are re-indexed to `0, 1, 2, …` in the current visual order.
-
-**Default initial content** (populated by `createResume`):
-```json
-{
-  "schemaVersion": 1,
-  "sections": [
-    { "id": "<uuid>", "type": "contact_info", "title": "Contact", "order": 0,
-      "data": { "fullName": "", "email": "", "phone": null, "location": null, "linkedinUrl": null, "websiteUrl": null } },
-    { "id": "<uuid>", "type": "summary",        "title": "Summary",         "order": 1,
-      "entries": [{ "id": "<uuid>", "text": "" }] },
-    { "id": "<uuid>", "type": "work_experience","title": "Work Experience",  "order": 2, "entries": [] },
-    { "id": "<uuid>", "type": "education",      "title": "Education",        "order": 3, "entries": [] }
-  ]
-}
-```
-
-**Cover letter content schema version 1:**
-
-```typescript
-type CoverLetterContentV1 = {
-  schemaVersion: 1;
-  recipientName: string | null;
-  recipientTitle: string | null;
-  companyName: string | null;
-  date: string | null;          // "YYYY-MM-DD"
-  salutation: string;           // e.g., "Dear Hiring Manager,"
-  body: string[];               // Array of paragraphs (plain text)
-  closing: string;              // e.g., "Sincerely,"
-  senderName: string;
-};
-```
-
-**Schema migration:** When `content_version` needs to increment, write a migration function in `src/lib/content-migrations.ts` that accepts any version and returns the latest. The `updateResume` and `updateCoverLetter` actions must migrate content before saving if the stored version is less than the current.
-
-**Fork semantics implementation:**
-
-```typescript
-// In src/actions/resumes.ts — forkResume
-const source = await getResume(sourceId); // must own it
-const fork = {
-  user_id: user.id,
-  name: input.name,
-  content: structuredClone(source.content), // deep copy
-  content_version: source.content_version,
-  parent_id: source.id,
-  root_id: source.root_id,  // carry from source, NOT source.id
-};
-await supabase.from('resumes').insert(fork);
-```
+**Fork semantics:** `forkResume` deep-copies `source.content` with `structuredClone`, sets `parent_id = source.id`, carries `root_id` from the source (not `source.id`). Edits to the fork never touch the source.
 
 ---
 
 ## Calendar Resource Model
 
-**Decision: Unified `calendar_items` table with a `kind` discriminator column.**
-
-Rejected alternative: four separate tables (`tasks`, `events`, `meetings`, `interviews`) — rejected because shared queries (e.g., "all items this week"), shared RLS policies, and shared UI components are simpler with one table. The discriminator column with CHECK constraints provides sufficient type safety.
-
-The `kind` column's closed set is defined in `docs/agent-guide.md#calendar-item-kinds`.
+**Decision: Unified `calendar_items` table with a `kind` discriminator column.** This simplifies shared queries, RLS policies, and UI components. The `kind` closed set is defined in `docs/agent-guide.md#calendar-item-kinds`.
 
 ---
 
@@ -1400,23 +845,17 @@ The function authenticates itself using `SUPABASE_SERVICE_ROLE_KEY` (environment
 
 **Structured logging format:** JSON. Every log line must include:
 
-```typescript
-type LogEntry = {
-  level: 'debug' | 'info' | 'warn' | 'error';
-  message: string;
-  timestamp: string;         // ISO 8601
-  requestId?: string;        // Propagated from middleware
-  userId?: string;           // Omit if not available
-  action?: string;           // Server action name
-  durationMs?: number;       // For timed operations
-  error?: {
-    message: string;
-    stack?: string;
-    code?: string;
-  };
-  [key: string]: unknown;    // Additional structured context
-};
-```
+| Field | Type | Notes |
+|---|---|---|
+| `level` | `'debug' \| 'info' \| 'warn' \| 'error'` | Required |
+| `message` | `string` | Required |
+| `timestamp` | `string` | ISO 8601; required |
+| `requestId` | `string?` | Propagated from middleware |
+| `userId` | `string?` | Omit if not available |
+| `action` | `string?` | Server action name |
+| `durationMs` | `number?` | For timed operations |
+| `error` | `{ message, stack?, code? }?` | Structured error context |
+| Additional fields | `unknown` | Additional structured context allowed |
 
 **Logger implementation** (`src/lib/logger.ts`): In development, pretty-prints to `stdout`. In production (detected via `process.env.NODE_ENV === 'production'`), outputs JSON to `stdout` (captured by Vercel's log drain).
 

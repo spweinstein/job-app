@@ -168,8 +168,6 @@ Each route lists: purpose, primary actions, navigation targets, and notes.
 
 ## Feature Acceptance Criteria
 
-Each feature block has a stable heading that future prompts in `docs/prompts/` will cite.
-
 ---
 
 ### Auth
@@ -402,8 +400,6 @@ Feature: Applications List
     When I select "Acme" from the company filter
     Then only Acme applications are shown
 ```
-
-**Note:** The status filter dropdown must list all nine statuses defined in `docs/agent-guide.md#application-statuses` (`draft`, `applied`, `screening`, `interviewing`, `offer`, `negotiating`, `accepted`, `rejected`, `withdrawn`). The scenarios above use a subset for illustration only.
 
 #### Applications — Create
 
@@ -799,7 +795,7 @@ Feature: Change Password
 
 ## State Matrices
 
-For each screen, all seven states are addressed. "N/A — [reason]" is used only where a state genuinely cannot occur.
+For each screen, all seven states are addressed; "N/A — [reason]" where a state cannot occur. All protected screens redirect to `/login?redirect=<path>` on unauthorized access (middleware-enforced before render). Auth screens (`/login`, `/signup`, `/forgot-password`, `/reset-password`) are publicly accessible. The Unauthorized row is omitted from all matrices below.
 
 ### `/dashboard`
 
@@ -811,7 +807,6 @@ For each screen, all seven states are addressed. "N/A — [reason]" is used only
 | Widget partial failure | The failed widget shows an inline error with a Retry button; all other widgets render normally. |
 | Full failure | All widgets show an inline error with a Retry button. |
 | Offline | Offline banner shown across the top; all widget interactions disabled. |
-| Unauthorized | Middleware redirects to `/login` before page renders. |
 
 ### `/companies` (List)
 
@@ -823,7 +818,6 @@ For each screen, all seven states are addressed. "N/A — [reason]" is used only
 | Partial failure | If some companies fail to load (e.g., network blip mid-pagination): show loaded items + inline error banner "Some companies could not be loaded. Refresh to retry." |
 | Full failure | Inline error: "Could not load companies. Check your connection and try again." with Retry button. |
 | Offline | Browser detects offline: "You appear to be offline. Companies will load when your connection is restored." |
-| Unauthorized | N/A — middleware redirects to `/login` before page renders. |
 
 ### `/applications` (List)
 
@@ -835,7 +829,6 @@ For each screen, all seven states are addressed. "N/A — [reason]" is used only
 | Partial failure | Show loaded rows + banner "Some applications could not be loaded." |
 | Full failure | Inline error with Retry button. |
 | Offline | Offline banner. |
-| Unauthorized | Middleware redirect to `/login`. |
 
 ### `/resumes` (List)
 
@@ -847,7 +840,6 @@ For each screen, all seven states are addressed. "N/A — [reason]" is used only
 | Partial failure | Show loaded items + banner. |
 | Full failure | Inline error with Retry. |
 | Offline | Offline banner. |
-| Unauthorized | Middleware redirect. |
 
 ### `/cover-letters` (List)
 
@@ -863,7 +855,6 @@ Identical to `/resumes` list state matrix, substituting "cover letters" for "res
 | Partial failure | Show loaded items + banner "Some calendar items could not be loaded." |
 | Full failure | Inline error with Retry. |
 | Offline | Offline banner. |
-| Unauthorized | Middleware redirect. |
 
 ### `/automations` (List)
 
@@ -875,7 +866,6 @@ Identical to `/resumes` list state matrix, substituting "cover letters" for "res
 | Partial failure | Show loaded items + banner. |
 | Full failure | Inline error with Retry. |
 | Offline | Offline banner. Toggle interactions disabled with tooltip "You are offline." |
-| Unauthorized | Middleware redirect. |
 
 ### `/automations/new` (Create Form)
 
@@ -887,7 +877,6 @@ Identical to `/resumes` list state matrix, substituting "cover letters" for "res
 | Partial failure | If save fails with `UPSTREAM_ERROR`: "Automation saved but test email failed. You can retry from the automation detail page." |
 | Full failure | If save fails: inline error above submit button with the error message. Form data preserved. |
 | Offline | Submit button disabled. Tooltip: "You are offline." |
-| Unauthorized | Middleware redirect. |
 
 ### `/profile` (Profile Edit)
 
@@ -899,7 +888,6 @@ Identical to `/resumes` list state matrix, substituting "cover letters" for "res
 | Partial failure | If avatar upload fails but text fields save: "Profile saved. Avatar upload failed — try again." |
 | Full failure | Inline error: "Could not save profile. Try again." Form data preserved. |
 | Offline | Submit disabled. Offline banner. |
-| Unauthorized | Middleware redirect. |
 
 ### Auth Screens (`/login`, `/signup`, `/forgot-password`, `/reset-password`)
 
@@ -911,7 +899,6 @@ Identical to `/resumes` list state matrix, substituting "cover letters" for "res
 | Partial failure | N/A — auth operations are atomic. |
 | Full failure | Inline error message below the form (exact copy defined in [Validation Rules](#validation-rules)). |
 | Offline | Submit button disabled. "You appear to be offline." |
-| Unauthorized | N/A — these screens are accessible without authentication. |
 
 ### Default State Pattern (Standard CRUD Screens)
 
@@ -925,7 +912,6 @@ Applies to: `/companies/new`, `/companies/[id]`, `/companies/[id]/edit`, `/appli
 | Partial failure | Inline field-level error; unaffected fields remain usable. |
 | Full failure | Inline error above the submit button with the error message; form data preserved. |
 | Offline | Submit/action buttons disabled; offline banner shown. |
-| Unauthorized | Middleware redirects to `/login?redirect=<current-path>` before page renders. |
 
 Deviations from this pattern must be documented explicitly in the relevant section below.
 
@@ -939,7 +925,6 @@ Deviations from this pattern must be documented explicitly in the relevant secti
 | Partial failure | If kind = 'interview' is selected and the applications dropdown fails to load: show "Could not load applications. Refresh to try again." Interview cannot be saved until the dropdown loads. |
 | Full failure | If save fails: inline error above submit; form data preserved. |
 | Offline | Submit disabled; offline banner. If kind = 'interview', application dropdown shows "Offline — application list unavailable." |
-| Unauthorized | Middleware redirect. |
 
 ### `/calendar/[id]` (Calendar Item Detail)
 
@@ -951,7 +936,6 @@ Deviations from this pattern must be documented explicitly in the relevant secti
 | Partial failure | If the linked application data fails to load: show item detail with "[Application data unavailable — refresh to retry]" in the linked application field. Complete/delete actions remain available. |
 | Full failure | Inline error: "Could not load this calendar item. Try again." with Retry button. |
 | Offline | Offline banner. "Mark complete" and "Delete" buttons disabled with tooltip "You are offline." |
-| Unauthorized | Middleware redirect (or 404 if the item belongs to another user). |
 
 ### `/calendar/[id]/edit` (Edit Calendar Item)
 
@@ -963,7 +947,6 @@ Deviations from this pattern must be documented explicitly in the relevant secti
 | Partial failure | If kind = 'interview' and the applications dropdown fails to reload on page load: show "[Could not load application list — current linked application preserved]"; allow save with the existing `application_id` unchanged. |
 | Full failure | If save fails: inline error above submit; form data preserved. |
 | Offline | Submit disabled; offline banner. |
-| Unauthorized | Middleware redirect. |
 
 ### `/automations/[id]` (Automation Detail + Execution History)
 
@@ -977,7 +960,6 @@ This screen has two independent data panels: the automation config (top) and the
 | Partial failure | If config loads but history fails: show config + "Could not load execution history. Refresh to retry." inline in the history panel. If history loads but config fails: show history + "Could not load automation details." in the config panel. Enable/disable toggle disabled until config loads. |
 | Full failure | Both panels show inline errors with Retry. |
 | Offline | Offline banner. Enable/disable toggle disabled with tooltip "You are offline." |
-| Unauthorized | Middleware redirect. |
 
 ### `/automations/[id]/edit` (Edit Automation)
 
@@ -989,7 +971,6 @@ This screen has two independent data panels: the automation config (top) and the
 | Partial failure | N/A — all fields derive from a single automation row; no multi-source loading. |
 | Full failure | If save fails: inline error above submit; form data preserved. |
 | Offline | Submit disabled; offline banner. |
-| Unauthorized | Middleware redirect. |
 
 ---
 
