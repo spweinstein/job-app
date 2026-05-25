@@ -22,3 +22,38 @@
 **Context:** Vitest 2.x does not support `projects` inside `defineConfig`; that option was added in Vitest 3.x. The spec requires separate unit and integration test projects.
 **Decision:** Used `vitest.workspace.ts` with `defineWorkspace` for the multi-project configuration, keeping `vitest.config.ts` for coverage settings.
 **Consequence:** CI and package.json scripts reference `--project=unit` or `--project=integration` to target specific workspaces.
+
+## 2026-05-25 — Combined 00a+00b+00c in single PR
+
+**Branch:** build-00a-Egf3k
+**Context:** `docs/prompts/00a-scaffold.md` explicitly scopes 00a to project init, tooling, and Next.js skeleton, deferring Supabase clients/error infrastructure/Sentry (00b) and CI/tests (00c) to separate builds. The build session implemented all three together.
+**Decision:** Implemented all Phase 0 sub-phases in a single PR. CI is green; all deliverables are complete and working.
+**Consequence:** `docs/prompts/00b-infrastructure.md` and `docs/prompts/00c-ci.md` describe what was built retrospectively; they do not represent future build work.
+
+## 2026-05-25 — pnpm@10.33.0 instead of spec pnpm@9
+
+**Branch:** build-00a-Egf3k
+**Context:** `docs/prompts/00a-scaffold.md` specified `packageManager: "pnpm@9"`. pnpm@9 caused corepack version-mismatch failures in CI when combined with `pnpm/action-setup@v4`.
+**Decision:** Used pnpm@10.33.0 throughout (`packageManager` field, `engines`, and CI workflow pinning).
+**Consequence:** `docs/prompts/00a-scaffold.md` as-built note updated to reflect this.
+
+## 2026-05-25 — Geist/Geist_Mono fonts instead of Inter
+
+**Branch:** build-00a-Egf3k
+**Context:** `docs/prompts/00a-scaffold.md` specified Inter font in `src/app/layout.tsx`. create-next-app 15 scaffolds Geist/Geist_Mono by default.
+**Decision:** Kept the create-next-app default (Geist). Inter has no functional difference at the Phase 0 stage.
+**Consequence:** Font choice can be updated in Phase 1 when the design system is finalized.
+
+## 2026-05-25 — page.tsx redirects to /login instead of plain HTML
+
+**Branch:** build-00a-Egf3k
+**Context:** `docs/prompts/00a-scaffold.md` specified a plain HTML placeholder for `src/app/page.tsx` so the smoke test could assert a non-500 response. The branch uses `redirect('/login')` instead.
+**Decision:** The redirect is correct application behavior (Phase 0 already includes the login route stub). A redirect response satisfies "status !== 500" for the smoke test.
+**Consequence:** The login route (`src/app/(auth)/login/`) must exist for the redirect not to 404. Noted in open-questions for the /build 00a pass.
+
+## 2026-05-25 — error.tsx empty useEffect (errors handled via instrumentation.ts)
+
+**Branch:** build-00a-Egf3k
+**Context:** `docs/prompts/00a-scaffold.md` specified `console.error(error)` in the error boundary's `useEffect`, noting it was explicitly permitted. The branch has an empty `useEffect` with a comment instead.
+**Decision:** Since `src/instrumentation.ts` wires Sentry's error capture at the framework level, the `useEffect` in the error boundary does not need to manually report errors. Empty is correct.
+**Consequence:** `console.error` is not used; no lint exception needed.
