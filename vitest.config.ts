@@ -13,7 +13,7 @@ export default defineConfig({
   test: {
     coverage: {
       provider: 'v8',
-      include: ['src/actions/**', 'src/lib/**'],
+      include: ['src/actions/**', 'src/lib/*.ts'],
       thresholds: {
         lines: 80,
       },

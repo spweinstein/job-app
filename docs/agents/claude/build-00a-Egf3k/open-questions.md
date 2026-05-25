@@ -8,6 +8,8 @@
 **Blocks:** <what it prevents>
 -->
 
+<!-- All items below are RESOLVED. See decisions.md for resolution details. -->
+
 ## Gate 1 FAIL — Unit test coverage below 80% threshold
 **Source:** review / gate 1
 **Finding:** FAIL

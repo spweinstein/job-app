@@ -51,6 +51,13 @@
 **Decision:** The redirect is correct application behavior (Phase 0 already includes the login route stub). A redirect response satisfies "status !== 500" for the smoke test.
 **Consequence:** The login route (`src/app/(auth)/login/`) must exist for the redirect not to 404. Noted in open-questions for the /build 00a pass.
 
+## 2026-05-25 — page.tsx reverted to plain HTML; auth directory removed
+
+**Branch:** build-00a-Egf3k
+**Context:** During /review 00a, E3 finding required removing `src/app/(auth)/login/page.tsx` (Phase 1+ scope). The existing `page.tsx` redirected to `/login`, which would 404 without the route. D3 had been approved as "update spec to match code" (keep the redirect), but removing the login route made the redirect invalid.
+**Decision:** Reverted `page.tsx` to a plain HTML placeholder (`<h1>Job Application Tracker</h1>`) and removed `src/app/(auth)/`. The login route and full redirect behavior will be introduced together in Phase 1.
+**Consequence:** `docs/prompts/00a-scaffold.md` as-built note already documents the redirect; this decision supersedes that specific note. The smoke test still passes (HTTP 200 instead of 302, both satisfy "status !== 500").
+
 ## 2026-05-25 — error.tsx empty useEffect (errors handled via instrumentation.ts)
 
 **Branch:** build-00a-Egf3k
