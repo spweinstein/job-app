@@ -73,10 +73,13 @@ Rules:
 
 Rules:
 - Read `docs/agent-guide.md`, the relevant roadmap phase, and the relevant spec sections listed in the phase's Reading List.
+- **Require a `**Scope:**` block** citing specific `docs/product-spec/` and/or `docs/technical-spec/` sections before producing any plan content. If no spec section covers the work, stop and ask the user.
 - Produce a step-by-step plan: migration → RLS → server actions → UI → tests.
 - Identify every file to create or modify.
 - Stop and surface any "When to Stop and Ask" trigger (`docs/agent-guide.md#when-to-stop-and-ask`) before proceeding.
-- Do not write code. Output the plan; wait for approval; **on approval, write the plan to `docs/prompts/<NN>-<slug>.md`**, commit all context files, and recommend the next conversation.
+- Do not write code. Output the plan; wait for approval via `AskUserQuestion`; **on approval, write the plan to `docs/prompts/<NN>-<slug>.md`** (overwriting if it already exists), commit all context files, and ask how to continue via `AskUserQuestion`.
+- If `docs/prompts/$ARGUMENTS.md` already exists, run in **revision mode**: read the existing plan as context, present only the delta, and use commit message `docs: revise plan for $ARGUMENTS`.
+- When splitting a phase into sub-phases, delete the original prompt file in the same commit as the sub-phase files.
 
 ### `/build`
 **Purpose:** Execute the current phase prompt end-to-end.
@@ -105,12 +108,15 @@ This is in addition to the existing "When to Stop and Ask" triggers in `docs/age
 **On merge:** copy all decision entries from `docs/agents/claude/<branch-slug>/decisions.md` into `docs/agents/decisions.md` (global history) as part of the merge commit.
 
 ### `/review`
-**Purpose:** Six-gate pre-merge review (automated checks → deliverables → spec compliance → acceptance criteria → PR checklist → open questions). Ends with a MERGEABLE / BLOCKED verdict. Persists all FAIL entries to `open-questions.md`.
+**Purpose:** Six-gate pre-merge review (automated checks → deliverables → spec diff → acceptance criteria → PR checklist → open questions), followed by a reconciliation step. Ends with a MERGEABLE / BLOCKED verdict.
 
 Rules:
 - Diff the branch against `main`.
 - Run all six gates in order and report findings per gate.
-- Do not edit source or spec files. Permitted writes: `docs/agents/claude/<branch-slug>/open-questions.md` only.
+- **Gate 3 performs an active diff** of the branch against the spec sections cited in `docs/prompts/$ARGUMENTS.md`. Divergences are categorized (exceeds / falls short / diverges) and collected for the Reconciliation step.
+- **After Gate 6, run Reconciliation:** for each Gate 3 divergence, present a resolution via `AskUserQuestion`. "Fix code" items block the verdict; "Update spec" items modify the spec file in place with user approval and are committed.
+- Do not edit source files. Spec files may be modified only via Reconciliation with explicit per-change user approval.
+- Permitted writes: `open-questions.md`, `decisions.md`, and spec files (reconciliation only).
 - If BLOCKED: commit findings and recommend a new `/build` conversation for repairs, then re-run `/review`.
 
 ---
@@ -133,6 +139,14 @@ A decision is significant if it: deviates from the spec, requires a new library,
 **`docs/agents/claude/<branch-slug>/open-questions.md`** — Per-branch live list. Add an entry whenever you stop because of a "When to Stop and Ask" or Decision Gate trigger. Before removing a resolved entry, create a corresponding `decisions.md` entry if the resolution has spec impact.
 
 **`docs/agents/decisions.md`** — Global history. Read this for context on prior decisions. Do not append directly during implementation; entries are promoted here on merge.
+
+---
+
+## GitHub MCP Tool Conventions
+
+This project runs in a remote environment where the `gh` CLI is **not** available. Use `mcp__github__*` tools for all GitHub interactions.
+
+**PR body formatting:** When calling `mcp__github__create_pull_request` or `mcp__github__update_pull_request`, pass the `body` parameter as a plain multi-line string. Do **not** wrap it in shell heredoc syntax (`$(cat <<'EOF'…EOF)`). That syntax is only valid inside a Bash tool call using `gh pr create`; it has no effect in an MCP tool parameter and will appear literally in the PR description.
 
 ---
 

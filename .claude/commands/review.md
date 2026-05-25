@@ -1,8 +1,8 @@
-Run the six-gate pre-merge review for $ARGUMENTS (or infer from the branch name if omitted). Do not edit any source or spec files.
+Run the six-gate pre-merge review for $ARGUMENTS (or infer from the branch name if omitted). Do not edit source files. Spec files in `docs/product-spec/` and `docs/technical-spec/` may be modified only via the Reconciliation step (after Gate 6) with explicit per-change user approval via `AskUserQuestion`.
 
-**Permitted writes:** `docs/agents/claude/<branch-slug>/open-questions.md` only.
+**Permitted writes:** `docs/agents/claude/<branch-slug>/open-questions.md`; `docs/agents/claude/<branch-slug>/decisions.md` (to record approved spec changes); spec files in `docs/product-spec/` and `docs/technical-spec/` (reconciliation only, with user approval per change).
 
-Run all six gates in order. Record BLOCKED for any hard failure and continue through remaining gates to collect all issues.
+Run all six gates in order. Record BLOCKED for any hard failure and continue through remaining gates to collect all issues. Collect Gate 3 divergences but do not resolve them until the Reconciliation step.
 
 ---
 
@@ -11,10 +11,10 @@ Run all six gates in order. Record BLOCKED for any hard failure and continue thr
 Run before reading any code:
 - `tsc --noEmit` — must exit 0
 - `eslint .` — must exit 0 with zero warnings
-- `vitest run` — all tests must pass
+- `vitest run --coverage` — all tests must pass; coverage must meet 80% threshold on `src/actions/` and `src/lib/`
 - `playwright test` — all E2E tests must pass
 
-Report each as **PASS** / **FAIL** (include exit code on failure).
+Report each as **PASS** / **FAIL** (include exit code or coverage percentage on failure).
 
 ---
 
@@ -26,16 +26,23 @@ Report each as **PASS** / **FAIL** (include exit code on failure).
 
 ---
 
-### Gate 3 — Spec compliance
+### Gate 3 — Spec diff
 
-Diff the branch with `git diff main...HEAD`. For each changed file, check:
+1. Read the `**Scope:**` block from `docs/prompts/$ARGUMENTS.md` to identify the cited spec files and anchors.
+2. Read those spec sections in full.
+3. Run `git diff main...HEAD` and compare changed files against the spec.
+4. Categorize each divergence:
+   - **Exceeds spec** — something built that isn't in any cited spec section
+   - **Falls short** — something specified that wasn't built (cross-check with Gate 2)
+   - **Diverges** — built differently than specified (different shape, behavior, or naming)
+5. Also check these rules as automatic FAILs regardless of spec:
+   - New tables missing RLS policies
+   - Server actions not returning `{ data } | { error }`
+   - `console.log`, `any`, or `SELECT *` in committed code
+   - DB calls in React components
+6. Collect all divergences. Do not resolve them here — they are addressed in the Reconciliation step after Gate 6.
 
-- *Schema / migrations:* new tables have RLS policies; columns match `docs/technical-spec/schema.md`; no schema changes outside `supabase/migrations/`.
-- *Server actions:* return `{ data } | { error }`; no `get*` functions; no `console.log`, `any`, or `SELECT *`.
-- *UI:* no DB calls in components; no client-side Supabase mutations.
-- *Tests:* new server actions have unit + integration tests; new UI flows have E2E tests.
-
-Report each finding as **PASS** / **FAIL** [file:line — rule violated].
+Report Gate 3 as **PASS** (no divergences, no automatic FAILs) or **DIVERGENCES FOUND — N items** (list each briefly).
 
 ---
 
@@ -63,29 +70,64 @@ Report each finding as **PASS** / **FAIL** [file:line — rule violated].
 
 ---
 
+### Reconciliation
+
+If Gate 3 found divergences, address each one now. Apply the following parameters to determine the default recommendation:
+
+| Divergence type | Default recommendation |
+|---|---|
+| UI copy, label text, error message wording | Either direction — user's call |
+| New UI state not in spec | Update spec if intentional; fix code if accidental |
+| New field, component, or helper not in spec | Update spec if intentional; fix code if accidental |
+| Changed API shape (action input/output) | Code must change — spec is a shared contract |
+| Schema column added, renamed, or removed | Code must change — migration coordination required |
+| Behavior passing Gherkin acceptance criteria but differing in implementation detail | Update spec |
+
+For each divergence, call `AskUserQuestion`:
+- question: "[Brief divergence description]. How should this be resolved?"
+- options (offer only the applicable ones per the table above):
+  - "Fix code to match spec"
+  - "Update spec to match code"
+  - "Defer — record as open question"
+
+**After all divergences are resolved:**
+- **"Fix code" items** → added to the BLOCKED verdict with a specific change list for `/build`.
+- **"Update spec" items** → modify the cited spec file in place; append a `decisions.md` entry recording the change; commit with message `docs: update spec to reflect $ARGUMENTS implementation`.
+- **"Defer" items** → appended to `open-questions.md` (same format as other findings).
+
+---
+
 ### Verdict
+
+Gate 3 is PASS only when all divergences are fully resolved (no outstanding "fix code" items remain).
 
 End with a single verdict line:
 ```
-VERDICT: MERGEABLE   (all 6 gates pass)
-VERDICT: BLOCKED — N issues across gates [list gate numbers with FAIL/MISSING/BLOCKING counts]
+VERDICT: MERGEABLE   (all 6 gates pass, all divergences resolved)
+VERDICT: BLOCKED — N issues across gates [list gate numbers with FAIL/MISSING/BLOCKING/unresolved-divergence counts]
 ```
+
+---
 
 ### Persistence
 
-After the verdict, append every FAIL, MISSING, and BLOCKING finding (not PASSes) to `docs/agents/claude/<branch-slug>/open-questions.md`:
+Append every FAIL, MISSING, BLOCKING, and unresolved divergence finding (not PASSes) to `docs/agents/claude/<branch-slug>/open-questions.md`:
 ```
 ## <short title>
 **Source:** review / gate <N>
-**Finding:** FAIL | MISSING | BLOCKING
+**Finding:** FAIL | MISSING | BLOCKING | DIVERGENCE
 **Location:** <file:line or gate name>
-**Detail:** <rule violated or what is missing>
+**Detail:** <rule violated, what is missing, or divergence description>
 ```
+
+If spec files were modified during Reconciliation, commit them together with `open-questions.md` and `decisions.md`.
+
+---
 
 ### Closing
 
 - If **MERGEABLE**: "VERDICT: MERGEABLE. Open the PR."
-- If **BLOCKED**: Commit `open-questions.md` with message `docs: review findings for $ARGUMENTS`, then use AskUserQuestion:
+- If **BLOCKED**: Commit findings with message `docs: review findings for $ARGUMENTS`, then use AskUserQuestion:
   - question: "Review BLOCKED — issues written to open-questions.md. Return to /build $ARGUMENTS?"
   - options:
     - label: "Continue in this session" / description: "Run /build $ARGUMENTS now to fix the issues"
