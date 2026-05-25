@@ -9,6 +9,12 @@
 **Consequence:** <what this affects>
 -->
 
+## 2026-05-25 — Local Supabase sufficient for Phase 1; Vercel not a Phase 1 prerequisite
+**Branch:** claude/discovery-01-auth-cOPIm
+**Context:** Discovery flagged "no remote Supabase project" and "no Vercel linkage" as hard blockers for Phase 1. User clarified that a local Supabase instance (`supabase start`) is the intended dev environment and Vercel deployment is not required to consider Phase 1 done locally.
+**Decision:** Use local Supabase (`supabase start`) for all Phase 1 development, migrations, integration tests, and E2E tests. Vercel deployment is deferred — it is not a Phase 1 gate. `NEXT_PUBLIC_APP_URL=http://localhost:3000` in `.env.local`. Local Supabase Studio at `localhost:54323` can configure email templates as needed.
+**Consequence:** The Phase 1 Definition of Done criterion "Vercel preview deploy green" is suspended for local development. Phase 1 is "done" when all acceptance criteria pass locally. Remote deployment is a separate concern.
+
 ## 2026-05-25 — Replace Upstash Redis rate limiting with Supabase Auth built-in limits
 **Branch:** claude/discovery-01-auth-cOPIm
 **Context:** `docs/technical-spec/security.md` specifies Upstash Redis (`@upstash/ratelimit`) for application-level rate limiting on login, signup, and forgot-password. The user decided not to introduce Upstash Redis as a dependency.
