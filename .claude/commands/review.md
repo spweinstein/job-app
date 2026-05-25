@@ -91,7 +91,7 @@ For each divergence, call `AskUserQuestion`:
   - "Defer — record as open question"
 
 **After all divergences are resolved:**
-- **"Fix code" items** → added to the BLOCKED verdict with a specific change list for `/build`.
+- **"Fix code" items** → added to the BLOCKED verdict with a specific change list for `/build`. **Never fix code within the review session.** The review is read-only for source files. Do not enter plan mode, do not run build commands, do not delete or create source files. "Fix code" items are a to-do list for the next `/build` pass — nothing more.
 - **"Update spec" items** → modify the cited spec file in place; append a `decisions.md` entry recording the change; commit with message `docs: update spec to reflect $ARGUMENTS implementation`.
 - **"Defer" items** → appended to `open-questions.md` (same format as other findings).
 
@@ -133,7 +133,7 @@ If spec files were modified during Reconciliation, commit them together with `op
     - label: "Continue in this session" / description: "Run /build $ARGUMENTS now to fix the issues"
     - label: "Start a new session" / description: "Show me how to fix issues in a fresh session"
 
-  If "Continue in this session": output only `/build $ARGUMENTS`.
+  If "Continue in this session": invoke the build skill using the Skill tool (`skill: build`, `args: $ARGUMENTS`). Do not output any other text — just invoke the skill.
   If "Start a new session": output:
 
 **Option A — continue in this session:**
