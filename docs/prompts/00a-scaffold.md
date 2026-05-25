@@ -15,7 +15,7 @@ Do not implement anything in 00b or 00c scope here.
 > for the full rationale. Key divergences from this prompt that were approved during `/review 00a`:
 > - `packageManager` is `pnpm@10.33.0` (not `pnpm@9`) — pnpm 10 required to avoid corepack conflicts.
 > - `src/app/layout.tsx` uses Geist/Geist_Mono (not Inter) — create-next-app 15 default.
-> - `src/app/page.tsx` calls `redirect('/login')` rather than returning a plain HTML placeholder.
+> - `src/app/page.tsx` returns a plain HTML placeholder (an initial redirect to `/login` was reverted when the login route stub was removed; both will be introduced together in Phase 1).
 > - `src/app/error.tsx` has an empty `useEffect`; errors reach Sentry via `src/instrumentation.ts`.
 > - `src/types/index.ts` and `src/types/database.ts` contain full stubs (00b scope) rather than `export {}`.
 

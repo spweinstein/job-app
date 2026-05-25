@@ -51,6 +51,13 @@
 **Decision:** The redirect is correct application behavior (Phase 0 already includes the login route stub). A redirect response satisfies "status !== 500" for the smoke test.
 **Consequence:** The login route (`src/app/(auth)/login/`) must exist for the redirect not to 404. Noted in open-questions for the /build 00a pass.
 
+## 2026-05-25 — 00a-scaffold.md as-built note updated for page.tsx revert
+
+**Branch:** build-00a-Egf3k
+**Context:** During second `/review 00a`, Gate 3 found that the as-built note in `docs/prompts/00a-scaffold.md` still said `page.tsx calls redirect('/login')` after the /build pass had reverted it to plain HTML.
+**Decision:** Updated the note to reflect that `page.tsx` returns a plain HTML placeholder, with a note that the redirect + login route will arrive together in Phase 1.
+**Consequence:** Spec now matches code; no further action needed.
+
 ## 2026-05-25 — page.tsx reverted to plain HTML; auth directory removed
 
 **Branch:** build-00a-Egf3k

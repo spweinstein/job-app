@@ -8,7 +8,8 @@
 **Blocks:** <what it prevents>
 -->
 
-<!-- All items below are RESOLVED. See decisions.md for resolution details. -->
+<!-- Items marked RESOLVED below have corresponding decisions.md entries. -->
+<!-- Items marked DEFERRED are accepted as-is and will be revisited in a later phase. -->
 
 ## Gate 1 FAIL — Unit test coverage below 80% threshold
 **Source:** review / gate 1
@@ -21,3 +22,9 @@
 **Finding:** DIVERGENCE
 **Location:** `src/app/(auth)/`, `src/app/(app)/`
 **Detail:** `src/app/(auth)/login/page.tsx` and the `(app)/` route group exist in this Phase 0 PR. Phase 0 is infrastructure-only; auth UI is Phase 1 scope. These directories should be removed from this PR and reintroduced in the Phase 1 build. Note: `src/app/page.tsx` currently calls `redirect('/login')` — if the auth directory is removed, the redirect target will 404. Either replace the redirect with a plain HTML placeholder, or keep the minimal login page stub.
+
+## E-empty — src/app/(app)/dashboard/ is an empty directory
+**Source:** review / gate 3
+**Finding:** DIVERGENCE (DEFERRED)
+**Location:** `src/app/(app)/dashboard/`
+**Detail:** Empty directory left over from earlier Phase 1 scaffolding. No files present; no functional impact. Accepted as harmless; will be populated during Phase 1 implementation.
