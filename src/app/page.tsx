@@ -1,5 +1,7 @@
-import { redirect } from 'next/navigation';
-
 export default function HomePage() {
-  redirect('/login');
+  return (
+    <main>
+      <h1>Job Application Tracker</h1>
+    </main>
+  );
 }
