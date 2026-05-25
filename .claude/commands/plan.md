@@ -32,17 +32,21 @@ Steps:
 Plan committed to `docs/prompts/$ARGUMENTS.md`.
 
 **Option A — continue in this session:**
+```
 /build $ARGUMENTS
+```
 
-**Option B — start a new session on branch `<branch-slug>`:**
-- **Cloud (Claude Code on the web):** Launch a new session configured for branch `<branch-slug>` and send this as the first message:
-  ```
-  /build $ARGUMENTS
-  ```
-- **Local (Claude Code CLI):** Run in your terminal, then start `claude`:
-  ```
-  git checkout <branch-slug>
-  ```
+**Option B — start a new session (Cloud / Claude Code on the web):**
+Launch a new session configured for branch `<branch-slug>` and send this as the first message:
+```
+/build $ARGUMENTS
+```
+
+**Option C — start a new session (Local / Claude Code CLI):**
+```
+git checkout <branch-slug>
+claude
+```
 ---
 
 Rules you must follow:

@@ -1,0 +1,3 @@
+-- Seed data for local development.
+-- Applied after migrations via: supabase db reset
+-- This file is intentionally empty at Phase 0. Seed data is added in later phases.

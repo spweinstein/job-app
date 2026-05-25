@@ -1,0 +1,11 @@
+node_modules/
+.next/
+coverage/
+playwright-report/
+pnpm-lock.yaml
+
+# Pre-existing documentation written before Prettier was initialized
+docs/
+CLAUDE.md
+README.md
+.claude/
