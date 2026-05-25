@@ -23,10 +23,7 @@
 **Question:** No `vercel.json` or `.vercel/` linkage exists. Phase 1's Definition of Done requires a green Vercel preview deploy.
 **Blocks:** Phase 1 Definition of Done (preview deploy criterion).
 
-## Upstash Redis not provisioned
-**Source:** discovery
-**Question:** Rate limiting for login (10/15 min), signup (5/hr), and forgot-password (3/hr) is specified to use Upstash Redis via `@upstash/ratelimit`. No Upstash project credentials (`UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`) are configured. These require manual provisioning of an Upstash Redis instance.
-**Blocks:** Rate limiting implementation and its integration tests in Phase 1.
+<!-- Upstash Redis blocker resolved: user approved using Supabase Auth's built-in rate limiting instead. See decisions.md. -->
 
 ## Supabase Auth email templates require manual dashboard configuration
 **Source:** discovery
