@@ -28,7 +28,7 @@ Discovery complete. Findings committed to `docs/agents/claude/<branch-slug>/open
 **Option B — start a new session (Cloud / Claude Code on the web):**
 Launch a new session configured for branch `<branch-slug>` and send this as the first message:
 ```
-/plan $ARGUMENTS
+/plan $ARGUMENTS <branch-slug>
 ```
 
 **Option C — start a new session (Local / Claude Code CLI):**

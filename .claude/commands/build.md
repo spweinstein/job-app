@@ -40,7 +40,7 @@ Implementation complete. All code committed to branch `<branch-slug>`.
 **Option B — start a new session (Cloud / Claude Code on the web):**
 Launch a new session configured for branch `<branch-slug>` and send this as the first message:
 ```
-/review $ARGUMENTS
+/review $ARGUMENTS <branch-slug>
 ```
 
 **Option C — start a new session (Local / Claude Code CLI):**

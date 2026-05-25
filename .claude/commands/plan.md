@@ -39,7 +39,7 @@ Plan committed to `docs/prompts/$ARGUMENTS.md`.
 **Option B — start a new session (Cloud / Claude Code on the web):**
 Launch a new session configured for branch `<branch-slug>` and send this as the first message:
 ```
-/build $ARGUMENTS
+/build $ARGUMENTS <branch-slug>
 ```
 
 **Option C — start a new session (Local / Claude Code CLI):**
