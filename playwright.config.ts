@@ -14,14 +14,7 @@ export default defineConfig({
   projects: [
     {
       name: 'chromium',
-      use: {
-        ...devices['Desktop Chrome'],
-        // Allow CI containers with pre-installed browsers to override the executable path,
-        // bypassing Playwright's revision-number check.
-        ...(process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH
-          ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH }
-          : {}),
-      },
+      use: { ...devices['Desktop Chrome'] },
     },
     ...(process.env.CI
       ? []
@@ -40,5 +33,6 @@ export default defineConfig({
     command: process.env.CI ? 'pnpm start' : 'pnpm dev',
     url: 'http://localhost:3000',
     reuseExistingServer: !process.env.CI,
+    timeout: 120_000,
   },
 });
