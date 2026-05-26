@@ -30,6 +30,20 @@
 **Decision:** Added two `test.describe.serial` blocks in `tests/e2e/auth.spec.ts` with `beforeAll`/`afterAll` hooks that create and delete confirmed test users. Tests call `test.skip(!hasAdminAccess, ...)` when `SUPABASE_SERVICE_ROLE_KEY` is absent so they skip gracefully in environments without admin access. The reset-token test uses `admin.auth.admin.generateLink({ type: 'recovery', email })` to get the `hashed_token` needed by the `/reset-password` page.
 **Consequence:** Full E2E coverage for happy paths when run with a service role key (CI / local with env set). Graceful skip otherwise. No test pollution between runs — users are created and deleted per test block.
 
+## 2026-05-26 — Playwright executablePath override for pre-installed CI browsers
+
+**Branch:** auth-build-01-6IAxG
+**Context:** `@playwright/test` v1.60.0 expects Chromium revision 1223, but the remote container ships with revision 1194 at `/opt/pw-browsers/`. The revision mismatch causes Playwright to abort even though a usable binary exists. `PLAYWRIGHT_BROWSERS_PATH` is already set but only controls the search root, not the expected revision number.
+**Decision:** Added `executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH` to the chromium project in `playwright.config.ts` (spread only when the env var is set). This is Playwright's documented escape hatch for bypassing the revision check. The env var is set by the container to `/opt/pw-browsers/chromium-1194/chrome-linux/chrome`.
+**Consequence:** E2E tests run in CI against the pre-installed binary. Local dev is unaffected (env var absent → no override → Playwright downloads its own managed binary as usual).
+
+## 2026-05-26 — Split Gate 5 checklist into Pre-PR and Post-PR items
+
+**Branch:** auth-build-01-6IAxG
+**Context:** The `/review` skill was marking verdicts BLOCKED because "Preview deploy green" and "Screenshots included" appeared in the same Required Checklist as code-quality items. Those two items can only be satisfied after a PR is opened, so they caused false BLOCKED verdicts at pre-merge review time.
+**Decision:** Split the Required Checklist in `docs/agent-guide.md` into **Pre-PR** (10 items, verifiable before opening a PR) and **Post-PR** (2 items: preview deploy + screenshots). Updated Gate 5 in `.claude/commands/review.md` to FAIL on pre-PR items and PENDING on post-PR items, with explicit note that PENDING does not contribute to BLOCKED.
+**Consequence:** `/review` now produces correct MERGEABLE verdicts when code is complete but a PR hasn't been opened yet. Post-PR items remain in the checklist so they appear in the PR description and are checked manually after the PR is open.
+
 ## 2026-05-26 — Rate limiting with dev-mode bypass
 
 **Branch:** auth-build-01-6IAxG

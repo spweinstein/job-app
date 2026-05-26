@@ -267,8 +267,9 @@ After a PR is merged, copy all entries from `docs/agents/claude/<branch-slug>/de
 
 ### Required Checklist
 
-Every PR description must include and complete this checklist:
+Every PR description must include and complete this checklist. Items are split into two groups: **Pre-PR** items must be satisfied before the PR is opened (the `/review` skill checks and blocks on these); **Post-PR** items can only be verified after the PR exists and do not block the pre-merge review verdict.
 
+**Pre-PR — verify before opening the PR:**
 ```
 - [ ] Migration added (if schema changed)
 - [ ] RLS policies added/updated for all affected tables
@@ -280,6 +281,10 @@ Every PR description must include and complete this checklist:
 - [ ] Acceptance criteria from docs/product-spec/<feature>.md cited and passing
 - [ ] TypeScript: `tsc --noEmit` passes
 - [ ] Lint: `eslint .` passes with zero warnings
+```
+
+**Post-PR — verify after the PR is open:**
+```
 - [ ] Preview deploy green
 - [ ] Screenshots included for all UI changes (desktop + mobile viewport)
 ```

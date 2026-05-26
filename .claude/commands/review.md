@@ -50,8 +50,8 @@ Report each finding as **PASS** / **FAIL** [file:line — rule violated].
 ### Gate 5 — PR checklist
 
 - Read the checklist from `docs/agent-guide.md#pr-conventions`.
-- Verify each item is satisfied.
-- Report each as **DONE** / **PENDING**.
+- For **Pre-PR** items: verify each is satisfied. Report as **DONE** / **FAIL**. Any FAIL blocks the verdict.
+- For **Post-PR** items (`Preview deploy green`, `Screenshots included`): report as **DONE** or **PENDING**. PENDING is expected before a PR exists and does **not** block the verdict.
 
 ---
 
@@ -70,6 +70,8 @@ End with a single verdict line:
 VERDICT: MERGEABLE   (all 6 gates pass)
 VERDICT: BLOCKED — N issues across gates [list gate numbers with FAIL/MISSING/BLOCKING counts]
 ```
+
+PENDING items in Gate 5 (post-PR checklist items) are **not** FAIL/MISSING/BLOCKING and do not contribute to the BLOCKED verdict.
 
 ### Persistence
 
