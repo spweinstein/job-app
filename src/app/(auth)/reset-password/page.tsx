@@ -5,7 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { Suspense, useActionState, useEffect, useState } from 'react';
 import { useFormStatus } from 'react-dom';
 
-import { resetPassword } from '@/actions/auth';
+import { resetPassword } from '@/actions/auth-password';
 import type { ActionResult } from '@/lib/errors';
 import { resetPasswordSchema } from '@/lib/validations/auth';
 

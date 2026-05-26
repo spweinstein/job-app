@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useActionState, useEffect, useState } from 'react';
 import { useFormStatus } from 'react-dom';
 
-import { sendPasswordResetEmail } from '@/actions/auth';
+import { sendPasswordResetEmail } from '@/actions/auth-password';
 import type { ActionResult } from '@/lib/errors';
 import { forgotPasswordSchema } from '@/lib/validations/auth';
 

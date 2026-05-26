@@ -57,12 +57,10 @@
 
 ## src/actions/auth.ts exceeds 150-line server action file limit
 **Source:** review / gate 3
-**Finding:** FAIL
-**Location:** `src/actions/auth.ts:1` — 189 lines
-**Detail:** `docs/agent-guide.md` limits server action files to 150 lines. `src/actions/auth.ts` is 189 lines (5 actions + 1 helper). Options: split into `src/actions/auth-signup.ts` + `src/actions/auth-session.ts`, or extract the `getClientIp` helper and shared imports into `src/lib/auth-helpers.ts` to bring the main file under 150 lines.
+**Finding:** RESOLVED
+**Resolution:** Extracted `getClientIp` to `src/lib/request.ts`. Split password-related actions (`sendPasswordResetEmail`, `resetPassword`) into `src/actions/auth-password.ts`. Identity actions (`signUp`, `signIn`, `signOut`) remain in `src/actions/auth.ts`. Both action files are now under 100 lines. Updated imports in `forgot-password/page.tsx` and `reset-password/page.tsx`. Committed 2026-05-26.
 
 ## Missing unit tests for server action functions and checkRateLimit
 **Source:** review / gate 5
-**Finding:** PENDING
-**Location:** `tests/unit/` — no unit tests for server actions
-**Detail:** `docs/agent-guide.md` PR checklist requires unit tests for all server actions and lib functions. `tests/unit/` covers only Zod schemas and error utilities. Missing: unit tests (with mocked Supabase client) for `signUp`, `signIn`, `signOut`, `sendPasswordResetEmail`, `resetPassword` in `src/actions/auth.ts`, and for `checkRateLimit` in `src/lib/rate-limit.ts`.
+**Finding:** RESOLVED
+**Resolution:** Added `tests/unit/auth-actions.test.ts` (24 tests covering all 5 server actions across validation, rate-limiting, supabase error, and success paths) and `tests/unit/rate-limit.test.ts` (6 tests covering dev bypass, allow/deny, and per-key limiter configuration). All 51 unit tests pass. Committed 2026-05-26.

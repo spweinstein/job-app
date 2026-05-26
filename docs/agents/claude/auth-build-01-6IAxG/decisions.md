@@ -44,6 +44,13 @@
 **Decision:** Split the Required Checklist in `docs/agent-guide.md` into **Pre-PR** (10 items, verifiable before opening a PR) and **Post-PR** (2 items: preview deploy + screenshots). Updated Gate 5 in `.claude/commands/review.md` to FAIL on pre-PR items and PENDING on post-PR items, with explicit note that PENDING does not contribute to BLOCKED.
 **Consequence:** `/review` now produces correct MERGEABLE verdicts when code is complete but a PR hasn't been opened yet. Post-PR items remain in the checklist so they appear in the PR description and are checked manually after the PR is open.
 
+## 2026-05-26 — Split auth actions file and extract getClientIp helper
+
+**Branch:** auth-build-01-6IAxG
+**Context:** `src/actions/auth.ts` reached 189 lines, exceeding the 150-line server action file limit in `docs/agent-guide.md`. Triggered by adding 5 auth actions plus a shared IP-extraction helper.
+**Decision:** Extracted `getClientIp` to `src/lib/request.ts` (shared utility). Split password-management actions (`sendPasswordResetEmail`, `resetPassword`) into `src/actions/auth-password.ts`. Identity actions (`signUp`, `signIn`, `signOut`) remain in `src/actions/auth.ts`. Both action files are now under 100 lines. Updated `forgot-password/page.tsx` and `reset-password/page.tsx` to import from `@/actions/auth-password`. Action names, signatures, and behavior are unchanged.
+**Consequence:** The file split is a pure reorganization — no user-visible behavior change. Future callers of password-management actions must import from `@/actions/auth-password`.
+
 ## 2026-05-26 — Rate limiting with dev-mode bypass
 
 **Branch:** auth-build-01-6IAxG
