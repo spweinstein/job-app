@@ -6,6 +6,7 @@ import { useFormStatus } from 'react-dom';
 
 import { signUp } from '@/actions/auth';
 import type { ActionResult } from '@/lib/errors';
+import { signUpSchema } from '@/lib/validations/auth';
 
 type State = ActionResult<Record<string, never>> | null;
 
@@ -35,6 +36,7 @@ function SubmitButton({ offline }: { offline: boolean }) {
 export default function SignUpPage() {
   const [state, formAction] = useActionState(signUp, null);
   const [isOnline, setIsOnline] = useState(true);
+  const [localErrors, setLocalErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
     setIsOnline(navigator.onLine);
@@ -49,6 +51,36 @@ export default function SignUpPage() {
   }, []);
 
   const isSuccess = state !== null && 'data' in state;
+
+  function handleBlur(e: React.FocusEvent<HTMLInputElement>) {
+    const { name, value } = e.target;
+    if (name !== 'email' && name !== 'password') return;
+    const result = signUpSchema.shape[name].safeParse(value);
+    if (!result.success) {
+      setLocalErrors((prev) => ({ ...prev, [name]: result.error.errors[0]?.message ?? '' }));
+    } else {
+      setLocalErrors((prev) => ({ ...prev, [name]: '' }));
+    }
+  }
+
+  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    const formData = new FormData(e.currentTarget);
+    const password = String(formData.get('password') ?? '');
+    const result = signUpSchema.shape.password.safeParse(password);
+    if (!result.success) {
+      e.preventDefault();
+      setLocalErrors((prev) => ({
+        ...prev,
+        password:
+          result.error.errors[0]?.message ??
+          'Password must be at least 8 characters and include a number.',
+      }));
+    }
+  }
+
+  function fieldError(field: string): string | undefined {
+    return localErrors[field] || errorField(state, field);
+  }
 
   return (
     <>
@@ -66,7 +98,7 @@ export default function SignUpPage() {
             </p>
           )}
 
-          <form action={formAction} className="space-y-4">
+          <form action={formAction} onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-slate-700">
                 Email
@@ -76,10 +108,11 @@ export default function SignUpPage() {
                 name="email"
                 type="email"
                 autoComplete="email"
+                onBlur={handleBlur}
                 className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
               />
-              {errorField(state, 'email') && (
-                <p className="mt-1 text-sm text-red-600">{errorField(state, 'email')}</p>
+              {fieldError('email') && (
+                <p className="mt-1 text-sm text-red-600">{fieldError('email')}</p>
               )}
             </div>
 
@@ -92,10 +125,11 @@ export default function SignUpPage() {
                 name="password"
                 type="password"
                 autoComplete="new-password"
+                onBlur={handleBlur}
                 className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
               />
-              {errorField(state, 'password') && (
-                <p className="mt-1 text-sm text-red-600">{errorField(state, 'password')}</p>
+              {fieldError('password') && (
+                <p className="mt-1 text-sm text-red-600">{fieldError('password')}</p>
               )}
             </div>
 

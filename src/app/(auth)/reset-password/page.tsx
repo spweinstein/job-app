@@ -2,11 +2,12 @@
 
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { useActionState, useEffect, useState } from 'react';
+import { Suspense, useActionState, useEffect, useState } from 'react';
 import { useFormStatus } from 'react-dom';
 
 import { resetPassword } from '@/actions/auth';
 import type { ActionResult } from '@/lib/errors';
+import { resetPasswordSchema } from '@/lib/validations/auth';
 
 type State = ActionResult<Record<string, never>> | null;
 
@@ -33,7 +34,7 @@ function SubmitButton({ offline }: { offline: boolean }) {
   );
 }
 
-export default function ResetPasswordPage() {
+function ResetPasswordPageContent() {
   const searchParams = useSearchParams();
   const tokenHash = searchParams.get('token_hash') ?? '';
 
@@ -42,6 +43,7 @@ export default function ResetPasswordPage() {
   const [password, setPassword] = useState('');
   const [matchError, setMatchError] = useState('');
   const [isOnline, setIsOnline] = useState(true);
+  const [localErrors, setLocalErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
     setIsOnline(navigator.onLine);
@@ -77,6 +79,15 @@ export default function ResetPasswordPage() {
     );
   }
 
+  function handlePasswordBlur() {
+    const result = resetPasswordSchema.shape.password.safeParse(password);
+    if (!result.success) {
+      setLocalErrors((prev) => ({ ...prev, password: result.error.errors[0]?.message ?? '' }));
+    } else {
+      setLocalErrors((prev) => ({ ...prev, password: '' }));
+    }
+  }
+
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     if (password !== confirmPassword) {
       e.preventDefault();
@@ -84,6 +95,10 @@ export default function ResetPasswordPage() {
     } else {
       setMatchError('');
     }
+  }
+
+  function fieldError(field: string): string | undefined {
+    return localErrors[field] || errorField(state, field);
   }
 
   return (
@@ -110,10 +125,11 @@ export default function ResetPasswordPage() {
             autoComplete="new-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            onBlur={handlePasswordBlur}
             className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
           />
-          {errorField(state, 'password') && (
-            <p className="mt-1 text-sm text-red-600">{errorField(state, 'password')}</p>
+          {fieldError('password') && (
+            <p className="mt-1 text-sm text-red-600">{fieldError('password')}</p>
           )}
         </div>
 
@@ -138,5 +154,13 @@ export default function ResetPasswordPage() {
         <SubmitButton offline={!isOnline} />
       </form>
     </>
+  );
+}
+
+export default function ResetPasswordPage() {
+  return (
+    <Suspense>
+      <ResetPasswordPageContent />
+    </Suspense>
   );
 }

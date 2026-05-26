@@ -6,6 +6,7 @@ import { useFormStatus } from 'react-dom';
 
 import { sendPasswordResetEmail } from '@/actions/auth';
 import type { ActionResult } from '@/lib/errors';
+import { forgotPasswordSchema } from '@/lib/validations/auth';
 
 type State = ActionResult<Record<string, never>> | null;
 
@@ -35,6 +36,7 @@ function SubmitButton({ offline }: { offline: boolean }) {
 export default function ForgotPasswordPage() {
   const [state, formAction] = useActionState(sendPasswordResetEmail, null);
   const [isOnline, setIsOnline] = useState(true);
+  const [localErrors, setLocalErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
     setIsOnline(navigator.onLine);
@@ -49,6 +51,20 @@ export default function ForgotPasswordPage() {
   }, []);
 
   const isSuccess = state !== null && 'data' in state;
+
+  function handleBlur(e: React.FocusEvent<HTMLInputElement>) {
+    const { value } = e.target;
+    const result = forgotPasswordSchema.shape.email.safeParse(value);
+    if (!result.success) {
+      setLocalErrors((prev) => ({ ...prev, email: result.error.errors[0]?.message ?? '' }));
+    } else {
+      setLocalErrors((prev) => ({ ...prev, email: '' }));
+    }
+  }
+
+  function fieldError(field: string): string | undefined {
+    return localErrors[field] || errorField(state, field);
+  }
 
   return (
     <>
@@ -79,10 +95,11 @@ export default function ForgotPasswordPage() {
                 name="email"
                 type="email"
                 autoComplete="email"
+                onBlur={handleBlur}
                 className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
               />
-              {errorField(state, 'email') && (
-                <p className="mt-1 text-sm text-red-600">{errorField(state, 'email')}</p>
+              {fieldError('email') && (
+                <p className="mt-1 text-sm text-red-600">{fieldError('email')}</p>
               )}
             </div>
 

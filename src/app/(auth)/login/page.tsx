@@ -2,11 +2,12 @@
 
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { useActionState, useEffect, useState } from 'react';
+import { Suspense, useActionState, useEffect, useState } from 'react';
 import { useFormStatus } from 'react-dom';
 
 import { signIn } from '@/actions/auth';
 import type { ActionResult } from '@/lib/errors';
+import { signInSchema } from '@/lib/validations/auth';
 
 type State = ActionResult<Record<string, never>> | null;
 
@@ -33,13 +34,14 @@ function SubmitButton({ offline }: { offline: boolean }) {
   );
 }
 
-export default function LoginPage() {
+function LoginPageContent() {
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get('redirect') ?? '';
   const resetSuccess = searchParams.get('reset') === 'success';
 
   const [state, formAction] = useActionState(signIn, null);
   const [isOnline, setIsOnline] = useState(true);
+  const [localErrors, setLocalErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
     setIsOnline(navigator.onLine);
@@ -52,6 +54,21 @@ export default function LoginPage() {
       window.removeEventListener('offline', onOffline);
     };
   }, []);
+
+  function handleBlur(e: React.FocusEvent<HTMLInputElement>) {
+    const { name, value } = e.target;
+    if (name !== 'email' && name !== 'password') return;
+    const result = signInSchema.shape[name].safeParse(value);
+    if (!result.success) {
+      setLocalErrors((prev) => ({ ...prev, [name]: result.error.errors[0]?.message ?? '' }));
+    } else {
+      setLocalErrors((prev) => ({ ...prev, [name]: '' }));
+    }
+  }
+
+  function fieldError(field: string): string | undefined {
+    return localErrors[field] || errorField(state, field);
+  }
 
   return (
     <>
@@ -81,10 +98,11 @@ export default function LoginPage() {
             name="email"
             type="email"
             autoComplete="email"
+            onBlur={handleBlur}
             className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
           />
-          {errorField(state, 'email') && (
-            <p className="mt-1 text-sm text-red-600">{errorField(state, 'email')}</p>
+          {fieldError('email') && (
+            <p className="mt-1 text-sm text-red-600">{fieldError('email')}</p>
           )}
         </div>
 
@@ -97,10 +115,11 @@ export default function LoginPage() {
             name="password"
             type="password"
             autoComplete="current-password"
+            onBlur={handleBlur}
             className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
           />
-          {errorField(state, 'password') && (
-            <p className="mt-1 text-sm text-red-600">{errorField(state, 'password')}</p>
+          {fieldError('password') && (
+            <p className="mt-1 text-sm text-red-600">{fieldError('password')}</p>
           )}
         </div>
 
@@ -121,5 +140,13 @@ export default function LoginPage() {
         </Link>
       </p>
     </>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginPageContent />
+    </Suspense>
   );
 }
