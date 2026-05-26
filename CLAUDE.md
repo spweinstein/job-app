@@ -31,6 +31,7 @@ Each command's closing outputs a two-option handoff block: **Option A** is a cli
 
 ### Standard conversation sequence for a phase
 
+0. `/scope` — Determine what to work on. Asks the user focused questions, maps intent to a spec area, and recommends the correct next command with the right arguments. Run this at the start of any session where the next step is unclear.
 1. `/discovery <NN>-<slug>` — Explore and record unknowns. Commits blockers to `open-questions.md`.
 2. `/plan <NN>-<slug>` — Design and record decisions. Commits the prompt file to `docs/prompts/<NN>-<slug>.md`.
 3. `/build <NN>-<slug>` — Implement. Commits code and context files.
@@ -57,6 +58,15 @@ The next agent starts fresh but has full fidelity because everything it needs li
 ## Operating Modes
 
 Invoke these as slash commands. Each mode has distinct constraints.
+
+### `/scope`
+**Purpose:** Determine what to work on. Conducts a short conversation with the user to understand their intent, maps it to an existing spec area or identifies it as a new idea, checks which workflow stage the relevant feature is currently at, and recommends the exact next command (with arguments) to run. Run this at the start of any session where the scope is unclear.
+
+Rules:
+- Read `docs/roadmap.md`, `docs/product-spec/index.md`, `docs/technical-spec/index.md`, and the `docs/prompts/` directory listing before asking any questions.
+- Ask at most two questions before producing a recommendation.
+- For new ideas with no existing spec coverage: describe what spec files must be authored before any workflow command can run — do not skip ahead to `/discovery`.
+- Do not edit any files. Do not open a PR. Do not run build, lint, or test commands.
 
 ### `/discovery`
 **Purpose:** Explore the codebase and docs; produce a findings report. Bootstraps per-branch context files on first run.
