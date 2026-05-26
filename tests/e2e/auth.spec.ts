@@ -48,9 +48,7 @@ test.describe('Signup', () => {
     await page.getByLabel('Email').fill(dupEmail);
     await page.getByLabel('Password').fill(TEST_PASSWORD);
     await page.getByRole('button', { name: 'Create account' }).click();
-    await expect(
-      page.getByText('An account with this email already exists.'),
-    ).toBeVisible();
+    await expect(page.getByText('An account with this email already exists.')).toBeVisible();
   });
 });
 

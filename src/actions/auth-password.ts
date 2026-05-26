@@ -32,7 +32,9 @@ export async function sendPasswordResetEmail(
   const ip = await getClientIp();
   const allowed = await checkRateLimit('forgotPassword', ip);
   if (!allowed) {
-    return { error: makeError(ErrorCode.RATE_LIMITED, 'Too many requests. Please try again later.') };
+    return {
+      error: makeError(ErrorCode.RATE_LIMITED, 'Too many requests. Please try again later.'),
+    };
   }
 
   const supabase = await createClient();
@@ -85,7 +87,9 @@ export async function resetPassword(
 
   if (updateError) {
     logger.error('Password update error', { error: { message: updateError.message } });
-    return { error: makeError(ErrorCode.INTERNAL_ERROR, 'Failed to update password. Please try again.') };
+    return {
+      error: makeError(ErrorCode.INTERNAL_ERROR, 'Failed to update password. Please try again.'),
+    };
   }
 
   await supabase.auth.signOut();

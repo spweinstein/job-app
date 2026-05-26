@@ -39,7 +39,9 @@ function makeMock(): SupabaseMock {
 beforeEach(() => {
   vi.clearAllMocks();
   vi.mocked(checkRateLimit).mockResolvedValue(true);
-  vi.mocked(createClient).mockResolvedValue(makeMock() as unknown as Awaited<ReturnType<typeof createClient>>);
+  vi.mocked(createClient).mockResolvedValue(
+    makeMock() as unknown as Awaited<ReturnType<typeof createClient>>,
+  );
 });
 
 // ---------------------------------------------------------------------------
@@ -74,8 +76,12 @@ describe('signUp', () => {
 
   it('returns CONFLICT when supabase reports already registered', async () => {
     const mock = makeMock();
-    mock.auth.signUp.mockResolvedValue({ error: { message: 'User already registered', code: null } });
-    vi.mocked(createClient).mockResolvedValue(mock as unknown as Awaited<ReturnType<typeof createClient>>);
+    mock.auth.signUp.mockResolvedValue({
+      error: { message: 'User already registered', code: null },
+    });
+    vi.mocked(createClient).mockResolvedValue(
+      mock as unknown as Awaited<ReturnType<typeof createClient>>,
+    );
     const fd = new FormData();
     fd.set('email', 'exists@example.com');
     fd.set('password', 'Password1!');
@@ -87,8 +93,12 @@ describe('signUp', () => {
 
   it('returns CONFLICT via error.code user_already_exists', async () => {
     const mock = makeMock();
-    mock.auth.signUp.mockResolvedValue({ error: { message: 'other', code: 'user_already_exists' } });
-    vi.mocked(createClient).mockResolvedValue(mock as unknown as Awaited<ReturnType<typeof createClient>>);
+    mock.auth.signUp.mockResolvedValue({
+      error: { message: 'other', code: 'user_already_exists' },
+    });
+    vi.mocked(createClient).mockResolvedValue(
+      mock as unknown as Awaited<ReturnType<typeof createClient>>,
+    );
     const fd = new FormData();
     fd.set('email', 'exists@example.com');
     fd.set('password', 'Password1!');
@@ -99,7 +109,9 @@ describe('signUp', () => {
   it('returns INTERNAL_ERROR on unexpected supabase error', async () => {
     const mock = makeMock();
     mock.auth.signUp.mockResolvedValue({ error: { message: 'server error', code: 'unexpected' } });
-    vi.mocked(createClient).mockResolvedValue(mock as unknown as Awaited<ReturnType<typeof createClient>>);
+    vi.mocked(createClient).mockResolvedValue(
+      mock as unknown as Awaited<ReturnType<typeof createClient>>,
+    );
     const fd = new FormData();
     fd.set('email', 'user@example.com');
     fd.set('password', 'Password1!');
@@ -148,8 +160,12 @@ describe('signIn', () => {
 
   it('returns UNAUTHENTICATED on wrong credentials', async () => {
     const mock = makeMock();
-    mock.auth.signInWithPassword.mockResolvedValue({ error: { message: 'Invalid login credentials' } });
-    vi.mocked(createClient).mockResolvedValue(mock as unknown as Awaited<ReturnType<typeof createClient>>);
+    mock.auth.signInWithPassword.mockResolvedValue({
+      error: { message: 'Invalid login credentials' },
+    });
+    vi.mocked(createClient).mockResolvedValue(
+      mock as unknown as Awaited<ReturnType<typeof createClient>>,
+    );
     const fd = new FormData();
     fd.set('email', 'user@example.com');
     fd.set('password', 'WrongPass1!');
@@ -193,7 +209,9 @@ describe('signIn', () => {
 describe('signOut', () => {
   it('calls supabase signOut and redirects to /login', async () => {
     const mock = makeMock();
-    vi.mocked(createClient).mockResolvedValue(mock as unknown as Awaited<ReturnType<typeof createClient>>);
+    vi.mocked(createClient).mockResolvedValue(
+      mock as unknown as Awaited<ReturnType<typeof createClient>>,
+    );
     await signOut();
     expect(mock.auth.signOut).toHaveBeenCalled();
     expect(redirect).toHaveBeenCalledWith('/login');
@@ -230,7 +248,9 @@ describe('sendPasswordResetEmail', () => {
   it('returns { data: {} } even when supabase call fails (prevents enumeration)', async () => {
     const mock = makeMock();
     mock.auth.resetPasswordForEmail.mockResolvedValue({ error: { message: 'User not found' } });
-    vi.mocked(createClient).mockResolvedValue(mock as unknown as Awaited<ReturnType<typeof createClient>>);
+    vi.mocked(createClient).mockResolvedValue(
+      mock as unknown as Awaited<ReturnType<typeof createClient>>,
+    );
     const fd = new FormData();
     fd.set('email', 'unknown@example.com');
     const result = await sendPasswordResetEmail(null, fd);
@@ -262,20 +282,27 @@ describe('resetPassword', () => {
   it('returns VALIDATION_ERROR with expired message when verifyOtp fails', async () => {
     const mock = makeMock();
     mock.auth.verifyOtp.mockResolvedValue({ error: { message: 'Token expired' } });
-    vi.mocked(createClient).mockResolvedValue(mock as unknown as Awaited<ReturnType<typeof createClient>>);
+    vi.mocked(createClient).mockResolvedValue(
+      mock as unknown as Awaited<ReturnType<typeof createClient>>,
+    );
     const fd = new FormData();
     fd.set('token_hash', 'expiredtoken');
     fd.set('password', 'NewPass1!');
     const result = await resetPassword(null, fd);
     expect(result).toMatchObject({
-      error: { code: 'VALIDATION_ERROR', message: 'This reset link has expired. Request a new one.' },
+      error: {
+        code: 'VALIDATION_ERROR',
+        message: 'This reset link has expired. Request a new one.',
+      },
     });
   });
 
   it('returns INTERNAL_ERROR when updateUser fails', async () => {
     const mock = makeMock();
     mock.auth.updateUser.mockResolvedValue({ error: { message: 'DB error' } });
-    vi.mocked(createClient).mockResolvedValue(mock as unknown as Awaited<ReturnType<typeof createClient>>);
+    vi.mocked(createClient).mockResolvedValue(
+      mock as unknown as Awaited<ReturnType<typeof createClient>>,
+    );
     const fd = new FormData();
     fd.set('token_hash', 'validtoken');
     fd.set('password', 'NewPass1!');
@@ -285,7 +312,9 @@ describe('resetPassword', () => {
 
   it('signs out and redirects to /login?reset=success on success', async () => {
     const mock = makeMock();
-    vi.mocked(createClient).mockResolvedValue(mock as unknown as Awaited<ReturnType<typeof createClient>>);
+    vi.mocked(createClient).mockResolvedValue(
+      mock as unknown as Awaited<ReturnType<typeof createClient>>,
+    );
     const fd = new FormData();
     fd.set('token_hash', 'validtoken');
     fd.set('password', 'NewPass1!');

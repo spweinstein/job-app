@@ -12,7 +12,10 @@ import { signInSchema, signUpSchema } from '@/lib/validations/auth';
 
 type EmptyResult = ActionResult<Record<string, never>>;
 
-export async function signUp(_prevState: EmptyResult | null, formData: FormData): Promise<EmptyResult> {
+export async function signUp(
+  _prevState: EmptyResult | null,
+  formData: FormData,
+): Promise<EmptyResult> {
   const raw = { email: formData.get('email'), password: formData.get('password') };
   const parsed = signUpSchema.safeParse(raw);
 
@@ -29,7 +32,9 @@ export async function signUp(_prevState: EmptyResult | null, formData: FormData)
   const ip = await getClientIp();
   const allowed = await checkRateLimit('signup', ip);
   if (!allowed) {
-    return { error: makeError(ErrorCode.RATE_LIMITED, 'Too many signup attempts. Please try again later.') };
+    return {
+      error: makeError(ErrorCode.RATE_LIMITED, 'Too many signup attempts. Please try again later.'),
+    };
   }
 
   const supabase = await createClient();
@@ -52,7 +57,10 @@ export async function signUp(_prevState: EmptyResult | null, formData: FormData)
   return { data: {} };
 }
 
-export async function signIn(_prevState: EmptyResult | null, formData: FormData): Promise<EmptyResult> {
+export async function signIn(
+  _prevState: EmptyResult | null,
+  formData: FormData,
+): Promise<EmptyResult> {
   const raw = { email: formData.get('email'), password: formData.get('password') };
   const parsed = signInSchema.safeParse(raw);
 
@@ -69,7 +77,9 @@ export async function signIn(_prevState: EmptyResult | null, formData: FormData)
   const ip = await getClientIp();
   const allowed = await checkRateLimit('login', ip);
   if (!allowed) {
-    return { error: makeError(ErrorCode.RATE_LIMITED, 'Too many login attempts. Please try again later.') };
+    return {
+      error: makeError(ErrorCode.RATE_LIMITED, 'Too many login attempts. Please try again later.'),
+    };
   }
 
   const supabase = await createClient();

@@ -5,7 +5,8 @@ const mockSlidingWindow = vi.fn().mockReturnValue('window-config');
 
 vi.mock('@upstash/ratelimit', () => {
   const Ratelimit = vi.fn().mockImplementation(() => ({ limit: mockLimit }));
-  (Ratelimit as unknown as { slidingWindow: typeof mockSlidingWindow }).slidingWindow = mockSlidingWindow;
+  (Ratelimit as unknown as { slidingWindow: typeof mockSlidingWindow }).slidingWindow =
+    mockSlidingWindow;
   return { Ratelimit };
 });
 

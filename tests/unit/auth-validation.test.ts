@@ -74,9 +74,7 @@ describe('signInSchema', () => {
     const result = signInSchema.safeParse({ email: 'user@example.com', password: '' });
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(result.error.flatten().fieldErrors.password).toContain(
-        'Please enter your password.',
-      );
+      expect(result.error.flatten().fieldErrors.password).toContain('Please enter your password.');
     }
   });
 });

@@ -66,9 +66,7 @@ function ResetPasswordPageContent() {
     return (
       <>
         <h1 className="mb-4 text-2xl font-bold text-slate-900">Reset password</h1>
-        <p className="mb-4 text-sm text-red-600">
-          This reset link has expired. Request a new one.
-        </p>
+        <p className="mb-4 text-sm text-red-600">This reset link has expired. Request a new one.</p>
         <Link
           href="/forgot-password"
           className="text-sm font-medium text-slate-900 hover:underline"
@@ -126,7 +124,7 @@ function ResetPasswordPageContent() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             onBlur={handlePasswordBlur}
-            className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
+            className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:ring-1 focus:ring-slate-500 focus:outline-none"
           />
           {fieldError('password') && (
             <p className="mt-1 text-sm text-red-600">{fieldError('password')}</p>
@@ -144,7 +142,7 @@ function ResetPasswordPageContent() {
             autoComplete="new-password"
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
-            className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
+            className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:ring-1 focus:ring-slate-500 focus:outline-none"
           />
           {matchError && <p className="mt-1 text-sm text-red-600">{matchError}</p>}
         </div>
