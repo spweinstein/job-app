@@ -21,6 +21,7 @@ Report each as **PASS** / **FAIL** (include exit code or coverage percentage on 
 ### Gate 2 — Deliverable completeness
 
 - Read `docs/prompts/$ARGUMENTS.md` for the expected deliverables list.
+- If the file does not exist, mark this gate **N/A** — expected when reviewing a `fix`-mode build that has no formal prompt file.
 - For each expected migration file, server action file, route, and test file: verify it exists.
 - Report each as **PASS** / **MISSING**.
 
@@ -57,8 +58,8 @@ Report Gate 3 as **PASS** (no divergences, no automatic FAILs) or **DIVERGENCES 
 ### Gate 5 — PR checklist
 
 - Read the checklist from `docs/agent-guide.md#pr-conventions`.
-- Verify each item is satisfied.
-- Report each as **DONE** / **PENDING**.
+- For **Pre-PR** items: verify each is satisfied. Report as **DONE** / **FAIL**. Any FAIL blocks the verdict.
+- For **Post-PR** items (`Preview deploy green`, `Screenshots included`): report as **DONE** or **PENDING**. PENDING is expected before a PR exists and does **not** block the verdict.
 
 ---
 

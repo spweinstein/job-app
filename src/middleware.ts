@@ -1,9 +1,23 @@
-import { type NextRequest } from 'next/server';
+import { type NextRequest, NextResponse } from 'next/server';
 
 import { updateSession } from '@/lib/supabase/middleware';
 
+const PUBLIC_ROUTES = ['/login', '/signup', '/forgot-password', '/reset-password'];
+
 export async function middleware(request: NextRequest) {
-  const { supabaseResponse } = await updateSession(request);
+  const { supabaseResponse, user } = await updateSession(request);
+
+  const path = request.nextUrl.pathname;
+  const isPublicRoute = PUBLIC_ROUTES.some(
+    (route) => path === route || path.startsWith(`${route}/`),
+  );
+
+  if (!isPublicRoute && !user) {
+    const loginUrl = new URL('/login', request.url);
+    loginUrl.searchParams.set('redirect', path);
+    return NextResponse.redirect(loginUrl);
+  }
+
   return supabaseResponse;
 }
 

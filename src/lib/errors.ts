@@ -14,10 +14,16 @@ export type ErrorCode = (typeof ErrorCode)[keyof typeof ErrorCode];
 export interface AppError {
   code: ErrorCode;
   message: string;
-  details?: unknown;
+  details?: Record<string, string[] | undefined>;
 }
 
-export function makeError(code: ErrorCode, message: string, details?: unknown): AppError {
+export type ActionResult<T> = { data: T } | { error: AppError };
+
+export function makeError(
+  code: ErrorCode,
+  message: string,
+  details?: Record<string, string[] | undefined>,
+): AppError {
   return { code, message, details };
 }
 
