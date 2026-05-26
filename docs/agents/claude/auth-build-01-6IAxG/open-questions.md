@@ -54,3 +54,15 @@
 **Finding:** PENDING
 **Location:** `playwright test` command
 **Detail:** The remote execution environment's network policy blocks downloads from `cdn.playwright.dev` (403). Playwright browser binaries are not installed. E2E tests must be verified in a CI environment with Playwright installed (e.g., Vercel preview + Playwright GitHub Action). The test code is in place and correct.
+
+## src/actions/auth.ts exceeds 150-line server action file limit
+**Source:** review / gate 3
+**Finding:** FAIL
+**Location:** `src/actions/auth.ts:1` — 189 lines
+**Detail:** `docs/agent-guide.md` limits server action files to 150 lines. `src/actions/auth.ts` is 189 lines (5 actions + 1 helper). Options: split into `src/actions/auth-signup.ts` + `src/actions/auth-session.ts`, or extract the `getClientIp` helper and shared imports into `src/lib/auth-helpers.ts` to bring the main file under 150 lines.
+
+## Missing unit tests for server action functions and checkRateLimit
+**Source:** review / gate 5
+**Finding:** PENDING
+**Location:** `tests/unit/` — no unit tests for server actions
+**Detail:** `docs/agent-guide.md` PR checklist requires unit tests for all server actions and lib functions. `tests/unit/` covers only Zod schemas and error utilities. Missing: unit tests (with mocked Supabase client) for `signUp`, `signIn`, `signOut`, `sendPasswordResetEmail`, `resetPassword` in `src/actions/auth.ts`, and for `checkRateLimit` in `src/lib/rate-limit.ts`.
