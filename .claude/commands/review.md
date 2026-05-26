@@ -20,9 +20,9 @@ Report each as **PASS** / **FAIL** (include exit code on failure).
 
 ### Gate 2 — Deliverable completeness
 
-- Read `docs/prompts/$ARGUMENTS.md` for the expected deliverables list.
-- For each expected migration file, server action file, route, and test file: verify it exists.
-- Report each as **PASS** / **MISSING**.
+- Attempt to read `docs/prompts/$ARGUMENTS.md` for the expected deliverables list.
+  - **If the prompt file exists:** for each expected migration file, server action file, route, and test file: verify it exists. Report each as **PASS** / **MISSING**.
+  - **If the prompt file does not exist (undocumented feature):** derive the expected deliverables list from `git diff main...HEAD` — group files by type (migrations, server actions, pages, components, tests) and treat the actual additions as the intended deliverable set. Report Gate 2 as **PARTIAL — no prompt file found; deliverables inferred from branch diff**.
 
 ---
 
@@ -41,9 +41,9 @@ Report each finding as **PASS** / **FAIL** [file:line — rule violated].
 
 ### Gate 4 — Acceptance criteria coverage
 
-- Read the relevant `docs/product-spec/<feature>.md`.
-- For each Gherkin scenario: search test files for corresponding coverage (scenario title keywords).
-- Report each scenario as **COVERED** / **MISSING**.
+- Determine the product-spec file to read: derive the feature name from `$ARGUMENTS` (e.g., `02-companies` → `docs/product-spec/companies.md`).
+  - **If the product-spec file exists:** for each Gherkin scenario, search test files for corresponding coverage (scenario title keywords). Report each as **COVERED** / **MISSING**.
+  - **If no product-spec file exists (undocumented feature):** report Gate 4 as **SKIP — no product spec found for `$ARGUMENTS`; acceptance criteria coverage unverifiable**.
 
 ---
 

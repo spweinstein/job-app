@@ -2,6 +2,19 @@ Design an implementation plan for $ARGUMENTS. Do not write any code.
 
 **Step 0 — Bootstrap:** Determine the branch slug with `git branch --show-current`. Check whether `docs/agents/claude/<branch-slug>/` exists. If not, create `decisions.md` and `open-questions.md` using the standard headers from `CLAUDE.md#agent-context-store`. Read `docs/agents/claude/<branch-slug>/decisions.md` if it exists, for context from prior phases.
 
+**Slug Resolution:** Search `docs/roadmap.md` for a section heading or `docs/prompts/` reference that matches `$ARGUMENTS`.
+- **If found:** extract the phase number, Reading List, and deliverables table; use them in Steps 1–4.
+- **If not found (undocumented feature):** this is a Decision Gate trigger. Append the following to `docs/agents/claude/<branch-slug>/open-questions.md`:
+  ```
+  ## No roadmap entry for $ARGUMENTS
+  **Source:** plan
+  **Question:** `$ARGUMENTS` has no section in `docs/roadmap.md`. Scope, acceptance criteria, schema changes, and a reading list are required before a grounded plan can be written.
+  **Blocks:** /plan $ARGUMENTS
+  ```
+  Then stop and ask the user:
+  > "`$ARGUMENTS` has no roadmap entry. To produce a grounded plan I need: (1) the feature's scope and acceptance criteria, (2) any schema/API changes required, (3) dependencies on prior phases. Please provide this context, or point me to existing docs that define it."
+  Do not write any plan or prompt file until the user supplies the missing context. Once the user provides it, draft the missing doc stubs (roadmap section + product-spec stub + technical-spec stub if needed) for their approval, then proceed to Step 1 using those drafts as the Reading List.
+
 Steps:
 1. Read `docs/agent-guide.md` (full), the relevant phase in `docs/roadmap.md`, and the spec files listed in that phase's Reading List.
 2. Read `docs/agents/claude/<branch-slug>/open-questions.md` for any unresolved questions in scope.

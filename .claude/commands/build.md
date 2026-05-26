@@ -2,10 +2,14 @@ Implement $ARGUMENTS following the vertical-slice order: migration → types →
 
 Before writing any code:
 1. Read `docs/agent-guide.md` (full).
-2. Read the relevant prompt file at `docs/prompts/<NN>-<slug>.md`.
-3. Read the relevant spec files listed in the phase's **Reading List** in `docs/roadmap.md`.
-4. Check `docs/agents/claude/<branch-slug>/open-questions.md` for any blockers.
-5. Read `docs/agents/claude/<branch-slug>/decisions.md` for any decisions recorded in prior phases.
+2. **Prompt file check:** Verify `docs/prompts/$ARGUMENTS.md` exists (substituting the actual slug, e.g. `docs/prompts/02-companies.md`). If it does not exist, stop immediately:
+   > Blocked: `docs/prompts/$ARGUMENTS.md` not found. Run `/plan $ARGUMENTS` first to generate the prompt file, then re-run `/build $ARGUMENTS`.
+   Do not proceed past this point.
+3. Read the prompt file at `docs/prompts/$ARGUMENTS.md`.
+4. **Slug Resolution:** Search `docs/roadmap.md` for a section heading or `docs/prompts/` reference matching `$ARGUMENTS` to locate the phase's Reading List. If the slug is not in the roadmap (undocumented feature), use the cross-doc citations at the top of the prompt file as the Reading List instead.
+5. Read the spec files from the Reading List.
+6. Check `docs/agents/claude/<branch-slug>/open-questions.md` for any blockers.
+7. Read `docs/agents/claude/<branch-slug>/decisions.md` for any decisions recorded in prior phases.
 
 During implementation — **Decision Gate:** stop and surface to the user before proceeding if the implementation requires any of:
 - A package not already in `package.json`
