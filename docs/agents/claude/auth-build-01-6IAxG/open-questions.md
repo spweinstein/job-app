@@ -54,3 +54,5 @@
 **Finding:** PENDING
 **Location:** `playwright test` command
 **Detail:** The remote execution environment's network policy blocks downloads from `cdn.playwright.dev` (403). Playwright browser binaries are not installed. E2E tests must be verified in a CI environment with Playwright installed (e.g., Vercel preview + Playwright GitHub Action). The test code is in place and correct.
+
+**Re-confirmed (2026-05-26 review pass):** Same constraint. Dev server crashes at startup with "Your project's URL and Key are required to create a Supabase client!" because `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` are not set in this sandbox. `playwright test` exits 1. All other gates (tsc, eslint, vitest, deliverables, spec compliance, acceptance criteria, PR checklist, open questions) are fully green. Remaining blocker is environment-only.
