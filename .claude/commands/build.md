@@ -47,12 +47,14 @@ After the user approves a decision:
 **On merge:**
 - Copy all entries from `docs/agents/claude/<branch-slug>/decisions.md` into `docs/agents/decisions.md` (global history) as part of the merge commit.
 
----
+**Closing:** After all code is committed, use AskUserQuestion:
+- question: "Implementation complete. How would you like to proceed to /review $ARGUMENTS?"
+- options:
+  - label: "Continue in this session" / description: "Run /review $ARGUMENTS right now"
+  - label: "Start a new session" / description: "Show me how to continue in a fresh session"
 
-**Closing:** After all code is committed and pushed:
-
-- If `--review` **was present**: immediately run `/review <slug-or-description>` in this same session. Do not output a handoff block.
-- If `--review` **was absent**: output this handoff block (substituting the real branch slug and argument):
+If "Continue in this session": invoke the review skill using the Skill tool (`skill: review`, `args: $ARGUMENTS`). Do not output any other text — just invoke the skill.
+If "Start a new session": output:
 
 ---
 Implementation complete. All code committed to branch `<branch-slug>`.
@@ -65,6 +67,12 @@ Implementation complete. All code committed to branch `<branch-slug>`.
 **Option B — start a new session (Cloud / Claude Code on the web):**
 Launch a new session configured for branch `<branch-slug>` and send this as the first message:
 ```
-/review <slug-or-description>
+/review $ARGUMENTS <branch-slug>
+```
+
+**Option C — start a new session (Local / Claude Code CLI):**
+```
+git checkout <branch-slug>
+claude
 ```
 ---
