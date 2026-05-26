@@ -5,7 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { useActionState, useEffect, useState } from 'react';
 import { useFormStatus } from 'react-dom';
 
-import { signIn } from '@/actions/auth';
+import { resetPassword } from '@/actions/auth';
 import type { ActionResult } from '@/lib/errors';
 
 type State = ActionResult<Record<string, never>> | null;
@@ -28,17 +28,19 @@ function SubmitButton({ offline }: { offline: boolean }) {
       disabled={pending || offline}
       className="w-full rounded-md bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
     >
-      {pending ? 'Signing in…' : 'Sign in'}
+      {pending ? 'Resetting…' : 'Reset password'}
     </button>
   );
 }
 
-export default function LoginPage() {
+export default function ResetPasswordPage() {
   const searchParams = useSearchParams();
-  const redirectTo = searchParams.get('redirect') ?? '';
-  const resetSuccess = searchParams.get('reset') === 'success';
+  const tokenHash = searchParams.get('token_hash') ?? '';
 
-  const [state, formAction] = useActionState(signIn, null);
+  const [state, formAction] = useActionState(resetPassword, null);
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [password, setPassword] = useState('');
+  const [matchError, setMatchError] = useState('');
   const [isOnline, setIsOnline] = useState(true);
 
   useEffect(() => {
@@ -53,15 +55,40 @@ export default function LoginPage() {
     };
   }, []);
 
+  const isExpiredError =
+    state !== null &&
+    'error' in state &&
+    state.error.message === 'This reset link has expired. Request a new one.';
+
+  if (!tokenHash || isExpiredError) {
+    return (
+      <>
+        <h1 className="mb-4 text-2xl font-bold text-slate-900">Reset password</h1>
+        <p className="mb-4 text-sm text-red-600">
+          This reset link has expired. Request a new one.
+        </p>
+        <Link
+          href="/forgot-password"
+          className="text-sm font-medium text-slate-900 hover:underline"
+        >
+          Request a new reset link
+        </Link>
+      </>
+    );
+  }
+
+  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    if (password !== confirmPassword) {
+      e.preventDefault();
+      setMatchError('Passwords do not match.');
+    } else {
+      setMatchError('');
+    }
+  }
+
   return (
     <>
-      <h1 className="mb-6 text-2xl font-bold text-slate-900">Sign in</h1>
-
-      {resetSuccess && (
-        <p className="mb-4 rounded-md bg-green-50 px-4 py-3 text-sm text-green-700">
-          Password reset. Please log in.
-        </p>
-      )}
+      <h1 className="mb-6 text-2xl font-bold text-slate-900">Reset password</h1>
 
       {!isOnline && (
         <p className="mb-4 rounded-md bg-yellow-50 px-4 py-3 text-sm text-yellow-700">
@@ -69,34 +96,20 @@ export default function LoginPage() {
         </p>
       )}
 
-      <form action={formAction} className="space-y-4">
-        {redirectTo && <input type="hidden" name="redirectTo" value={redirectTo} />}
-
-        <div>
-          <label htmlFor="email" className="block text-sm font-medium text-slate-700">
-            Email
-          </label>
-          <input
-            id="email"
-            name="email"
-            type="email"
-            autoComplete="email"
-            className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
-          />
-          {errorField(state, 'email') && (
-            <p className="mt-1 text-sm text-red-600">{errorField(state, 'email')}</p>
-          )}
-        </div>
+      <form action={formAction} onSubmit={handleSubmit} className="space-y-4">
+        <input type="hidden" name="token_hash" value={tokenHash} />
 
         <div>
           <label htmlFor="password" className="block text-sm font-medium text-slate-700">
-            Password
+            New password
           </label>
           <input
             id="password"
             name="password"
             type="password"
-            autoComplete="current-password"
+            autoComplete="new-password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
             className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
           />
           {errorField(state, 'password') && (
@@ -104,22 +117,26 @@ export default function LoginPage() {
           )}
         </div>
 
+        <div>
+          <label htmlFor="confirmPassword" className="block text-sm font-medium text-slate-700">
+            Confirm password
+          </label>
+          <input
+            id="confirmPassword"
+            name="confirmPassword"
+            type="password"
+            autoComplete="new-password"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
+          />
+          {matchError && <p className="mt-1 text-sm text-red-600">{matchError}</p>}
+        </div>
+
         {formError(state) && <p className="text-sm text-red-600">{formError(state)}</p>}
 
         <SubmitButton offline={!isOnline} />
       </form>
-
-      <p className="mt-4 text-center text-sm text-slate-600">
-        <Link href="/forgot-password" className="font-medium text-slate-900 hover:underline">
-          Forgot password?
-        </Link>
-      </p>
-      <p className="mt-2 text-center text-sm text-slate-600">
-        Don&apos;t have an account?{' '}
-        <Link href="/signup" className="font-medium text-slate-900 hover:underline">
-          Sign up
-        </Link>
-      </p>
     </>
   );
 }
