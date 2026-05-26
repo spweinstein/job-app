@@ -21,6 +21,7 @@ Report each as **PASS** / **FAIL** (include exit code on failure).
 ### Gate 2 — Deliverable completeness
 
 - Read `docs/prompts/$ARGUMENTS.md` for the expected deliverables list.
+- If the file does not exist, mark this gate **N/A** — expected when reviewing a `fix`-mode build that has no formal prompt file.
 - For each expected migration file, server action file, route, and test file: verify it exists.
 - Report each as **PASS** / **MISSING**.
 
@@ -86,7 +87,19 @@ After the verdict, append every FAIL, MISSING, and BLOCKING finding (not PASSes)
 
 ### Closing
 
-- If **MERGEABLE**: "VERDICT: MERGEABLE. Open the PR."
+- If **MERGEABLE**: Present these options to the user and wait for their choice:
+
+  **A — Iterate:** There are more changes to make.
+  → Run `/build implement $ARGUMENTS` (or `/build fix <description>` for a targeted patch).
+
+  **B — Hold:** Branch is ready but don't open a PR yet.
+  → No further action. Remind the user the branch is pushed and ready when they want to ship.
+
+  **C — Ship:** Open the PR now.
+  → Create the PR using `mcp__github__create_pull_request` with:
+    - Title: inferred from `$ARGUMENTS` and the phase description
+    - Body: the Required Checklist from `docs/agent-guide.md#pr-conventions`, with Pre-PR items pre-checked (✅) based on Gate 5 DONE results, Post-PR items unchecked (☐), and an "Acceptance criteria" section citing each Gherkin scenario marked COVERED in Gate 4.
+
 - If **BLOCKED**: Commit `open-questions.md` with message `docs: review findings for $ARGUMENTS`, then output this handoff block (substituting the real branch slug and argument):
 
 ---
