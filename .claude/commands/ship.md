@@ -116,6 +116,28 @@ Output the returned PR URL as `<pr-url>`.
 
 ---
 
+### Step 5b — Close superseded PRs
+
+Call `mcp__github__list_pull_requests` with:
+- `owner` / `repo` — same as Step 5
+- `head` — `<owner>:<branch-slug>` (GitHub requires the `owner:` prefix)
+- `state` — `open`
+
+Filter out the PR just created (match by number). If no others remain, skip this step silently.
+
+If one or more open PRs are found targeting other bases, use `AskUserQuestion`:
+- question: "Found <N> open PR(s) from `<branch-slug>` targeting other branches — likely auto-created by GitHub. Close as superseded?"
+- If N = 1:
+  - label: "Close #<number> (targets `<base>`)" / description: "Close this stale PR"
+  - label: "Skip — I'll handle manually" / description: "Leave it open"
+- If N ≥ 2:
+  - label: "Close all <N>" / description: "Close every open PR from this branch except the new one"
+  - label: "Skip — I'll handle manually" / description: "Leave them open"
+
+For each PR the user selects to close: call `mcp__github__update_pull_request` with `state: closed`.
+
+---
+
 ### Closing
 
 Use `AskUserQuestion`:
