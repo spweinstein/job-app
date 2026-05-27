@@ -41,6 +41,7 @@ After the user approves a decision:
 
 **Coding rules (no exceptions):**
 - After every migration: run `supabase gen types typescript --local > src/types/database.ts`.
+- Before every `git commit`: run `pnpm format` to auto-format all authored files.
 - No `console.log`, no `any`, no `SELECT *`, no disabled lint rules without justification.
 - Server actions in `src/actions/` only. No DB calls in components. No `get*` functions in server actions — reads belong in Server Components.
 

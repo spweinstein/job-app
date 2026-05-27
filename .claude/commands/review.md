@@ -11,6 +11,7 @@ Run all six gates in order. Record BLOCKED for any hard failure and continue thr
 Run before reading any code:
 - `tsc --noEmit` — must exit 0
 - `eslint .` — must exit 0 with zero warnings
+- `pnpm format:check` — must exit 0 (Prettier)
 - `vitest run --coverage` — all tests must pass; coverage must meet 80% threshold on `src/actions/` and `src/lib/`
 - `playwright test` — all E2E tests must pass
 
