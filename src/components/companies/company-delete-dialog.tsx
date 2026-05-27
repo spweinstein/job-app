@@ -5,6 +5,12 @@ import { useState } from 'react';
 
 import { deleteCompany } from '@/actions/companies';
 
+export function deleteWarningText(applicationCount: number): string {
+  return applicationCount > 0
+    ? `Deleting this company will also delete its ${applicationCount} application(s). This cannot be undone.`
+    : 'This action cannot be undone.';
+}
+
 interface CompanyDeleteDialogProps {
   companyId: string;
   companyName: string;
@@ -57,9 +63,7 @@ export function CompanyDeleteDialog({
               Delete {companyName}?
             </h2>
             <p className="mb-4 text-sm text-neutral-600 dark:text-neutral-400">
-              {applicationCount > 0
-                ? `Deleting this company will also delete its ${applicationCount} application(s). This cannot be undone.`
-                : 'This action cannot be undone.'}
+              {deleteWarningText(applicationCount)}
             </p>
 
             {error && (

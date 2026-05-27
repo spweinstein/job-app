@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { CompanyCard } from '@/components/companies/company-card';
 
@@ -17,6 +17,27 @@ interface CompanyListProps {
 
 export function CompanyList({ companies }: CompanyListProps) {
   const [search, setSearch] = useState('');
+  const [isOffline, setIsOffline] = useState(false);
+
+  useEffect(() => {
+    setIsOffline(!window.navigator.onLine);
+    function handleOnline() { setIsOffline(false); }
+    function handleOffline() { setIsOffline(true); }
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
+  if (isOffline) {
+    return (
+      <p className="py-8 text-center text-neutral-500">
+        You appear to be offline. Companies will load when your connection is restored.
+      </p>
+    );
+  }
 
   const filtered = companies.filter((c) =>
     c.name.toLowerCase().includes(search.toLowerCase()),

@@ -1,3 +1,4 @@
+import type { Route } from 'next';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
@@ -18,13 +19,15 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <nav className="w-56 shrink-0 border-r p-4">
         <p className="mb-6 text-sm font-semibold">Job Tracker</p>
         <ul className="space-y-1">
-          {[
-            { href: '/companies', label: 'Companies' },
-            { href: '/applications', label: 'Applications' },
-            { href: '/calendar', label: 'Calendar' },
-            { href: '/automations', label: 'Automations' },
-            { href: '/profile', label: 'Profile' },
-          ].map(({ href, label }) => (
+          {(
+            [
+              { href: '/companies', label: 'Companies' },
+              { href: '/applications', label: 'Applications' },
+              { href: '/calendar', label: 'Calendar' },
+              { href: '/automations', label: 'Automations' },
+              { href: '/profile', label: 'Profile' },
+            ] as { href: Route; label: string }[]
+          ).map(({ href, label }) => (
             <li key={href}>
               <Link
                 href={href}

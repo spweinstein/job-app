@@ -24,6 +24,24 @@
 **Decision:** Export `ActionResult<T>` from `src/lib/errors.ts` since it is logically part of the error contract.
 **Consequence:** All server action files import `ActionResult` from `@/lib/errors`.
 
+## 2026-05-27 — Typed-routes cast for future sidebar nav hrefs
+**Branch:** companies-scope-definition-Pr086
+**Context:** Next.js `experimental.typedRoutes: true` requires `Link href` to be a known `RouteImpl<T>` type. The sidebar in `(app)/layout.tsx` links to routes (`/applications`, `/calendar`, `/automations`, `/profile`) that don't exist yet and are therefore absent from the generated `.next/types/link.d.ts` `StaticRoutes` union.
+**Decision:** Cast the nav items array as `{ href: Route; label: string }[]` using `import type { Route } from 'next'`. This preserves type checking for routes that do exist while allowing placeholder links for future routes without disabling typed routes globally.
+**Consequence:** When Phase 3+ routes are added, the cast remains valid (it's a widening, not an unsound narrowing). If `typedRoutes` is ever enforced strictly per-route, the cast should be replaced with individual link components.
+
+## 2026-05-27 — /companies list state matrix: partial failure treated as full failure
+**Branch:** companies-scope-definition-Pr086
+**Context:** The product spec state matrix for `/companies` lists Loading, Empty, Populated, Partial failure, Full failure, and Offline states. The page fetches all companies with a single Supabase query inside a Server Component.
+**Decision:** Loading state is covered by `loading.tsx` (Next.js Suspense). Full failure (Supabase error returns `{ error }`) renders an inline error banner with a retry link. Partial failure (spec: "show loaded items + inline error banner") is architecturally unreachable with a single server-side query — there are no "partially loaded items" in this model. Offline state is covered by a client-side `window.navigator.onLine` listener in `CompanyList`.
+**Consequence:** The partial failure UI state is never rendered; the spec scenario cannot occur without splitting the query into multiple calls. If companies are later fetched from multiple sources (e.g., local cache + live count), partial failure handling should be revisited.
+
+## 2026-05-27 — deleteWarningText extracted from CompanyDeleteDialog for testability
+**Branch:** companies-scope-definition-Pr086
+**Context:** The review found the "Delete with applications" Gherkin scenario had no test coverage. The warning text was inline JSX conditional logic in `CompanyDeleteDialog`.
+**Decision:** Extract the conditional warning text to an exported pure function `deleteWarningText(applicationCount: number): string` in `company-delete-dialog.tsx`, tested in `tests/unit/components/company-delete-dialog.test.ts`.
+**Consequence:** The function is exported; callers must not change its signature without updating the tests.
+
 ## 2026-05-27 — Docker unavailable; supabase gen types run manually
 **Branch:** companies-scope-definition-Pr086
 **Context:** `supabase gen types typescript --local` requires Docker. Docker is not available in this environment.
