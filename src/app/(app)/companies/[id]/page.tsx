@@ -74,7 +74,7 @@ export default async function CompanyDetailPage({ params }: CompanyDetailPagePro
         {company.notes && (
           <div>
             <dt className="text-sm font-medium text-neutral-500">Notes</dt>
-            <dd className="mt-1 whitespace-pre-wrap text-sm">{company.notes}</dd>
+            <dd className="mt-1 text-sm whitespace-pre-wrap">{company.notes}</dd>
           </div>
         )}
       </dl>

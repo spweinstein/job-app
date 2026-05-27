@@ -1,5 +1,6 @@
 'use client';
 
+import type { Route } from 'next';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { Suspense, useActionState, useEffect, useState } from 'react';
@@ -129,13 +130,16 @@ function LoginPageContent() {
       </form>
 
       <p className="mt-4 text-center text-sm text-slate-600">
-        <Link href="/forgot-password" className="font-medium text-slate-900 hover:underline">
+        <Link
+          href={'/forgot-password' as Route}
+          className="font-medium text-slate-900 hover:underline"
+        >
           Forgot password?
         </Link>
       </p>
       <p className="mt-2 text-center text-sm text-slate-600">
         Don&apos;t have an account?{' '}
-        <Link href="/signup" className="font-medium text-slate-900 hover:underline">
+        <Link href={'/signup' as Route} className="font-medium text-slate-900 hover:underline">
           Sign up
         </Link>
       </p>

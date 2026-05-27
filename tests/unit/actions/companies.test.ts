@@ -205,9 +205,7 @@ describe('deleteCompany', () => {
       data: { user: { id: 'user-1' } },
       error: null,
     });
-    chain.eq
-      .mockReturnValueOnce(chain)
-      .mockResolvedValueOnce({ error: null });
+    chain.eq.mockReturnValueOnce(chain).mockResolvedValueOnce({ error: null });
 
     const result = await deleteCompany({ id: validId });
     expect('data' in result).toBe(true);

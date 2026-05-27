@@ -1,5 +1,6 @@
 'use client';
 
+import type { Route } from 'next';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { Suspense, useActionState, useEffect, useState } from 'react';
@@ -68,7 +69,7 @@ function ResetPasswordPageContent() {
         <h1 className="mb-4 text-2xl font-bold text-slate-900">Reset password</h1>
         <p className="mb-4 text-sm text-red-600">This reset link has expired. Request a new one.</p>
         <Link
-          href="/forgot-password"
+          href={'/forgot-password' as Route}
           className="text-sm font-medium text-slate-900 hover:underline"
         >
           Request a new reset link

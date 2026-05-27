@@ -12,7 +12,11 @@ export async function createCompany(rawInput: unknown): Promise<ActionResult<{ i
   const parsed = createCompanySchema.safeParse(rawInput);
   if (!parsed.success) {
     return {
-      error: makeError(ErrorCode.VALIDATION_ERROR, 'Invalid input.', parsed.error.flatten().fieldErrors),
+      error: makeError(
+        ErrorCode.VALIDATION_ERROR,
+        'Invalid input.',
+        parsed.error.flatten().fieldErrors,
+      ),
     };
   }
 
@@ -38,7 +42,10 @@ export async function createCompany(rawInput: unknown): Promise<ActionResult<{ i
     .single();
 
   if (error) {
-    logger.error('createCompany failed', { action: 'createCompany', error: { message: error.message, code: error.code } });
+    logger.error('createCompany failed', {
+      action: 'createCompany',
+      error: { message: error.message, code: error.code },
+    });
     return { error: makeError(ErrorCode.INTERNAL_ERROR, 'Failed to create company.') };
   }
 
@@ -50,7 +57,11 @@ export async function updateCompany(rawInput: unknown): Promise<ActionResult<{ i
   const parsed = updateCompanySchema.safeParse(rawInput);
   if (!parsed.success) {
     return {
-      error: makeError(ErrorCode.VALIDATION_ERROR, 'Invalid input.', parsed.error.flatten().fieldErrors),
+      error: makeError(
+        ErrorCode.VALIDATION_ERROR,
+        'Invalid input.',
+        parsed.error.flatten().fieldErrors,
+      ),
     };
   }
 
@@ -80,7 +91,10 @@ export async function updateCompany(rawInput: unknown): Promise<ActionResult<{ i
     if (error.code === 'PGRST116') {
       return { error: makeError(ErrorCode.FORBIDDEN, 'Company not found or access denied.') };
     }
-    logger.error('updateCompany failed', { action: 'updateCompany', error: { message: error.message, code: error.code } });
+    logger.error('updateCompany failed', {
+      action: 'updateCompany',
+      error: { message: error.message, code: error.code },
+    });
     return { error: makeError(ErrorCode.INTERNAL_ERROR, 'Failed to update company.') };
   }
 
@@ -93,7 +107,11 @@ export async function deleteCompany(rawInput: unknown): Promise<ActionResult<{ i
   const parsed = z.object({ id: z.string().uuid() }).safeParse(rawInput);
   if (!parsed.success) {
     return {
-      error: makeError(ErrorCode.VALIDATION_ERROR, 'Invalid input.', parsed.error.flatten().fieldErrors),
+      error: makeError(
+        ErrorCode.VALIDATION_ERROR,
+        'Invalid input.',
+        parsed.error.flatten().fieldErrors,
+      ),
     };
   }
 
@@ -114,7 +132,10 @@ export async function deleteCompany(rawInput: unknown): Promise<ActionResult<{ i
     .eq('user_id', user.id);
 
   if (error) {
-    logger.error('deleteCompany failed', { action: 'deleteCompany', error: { message: error.message, code: error.code } });
+    logger.error('deleteCompany failed', {
+      action: 'deleteCompany',
+      error: { message: error.message, code: error.code },
+    });
     return { error: makeError(ErrorCode.INTERNAL_ERROR, 'Failed to delete company.') };
   }
 

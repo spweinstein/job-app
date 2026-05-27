@@ -21,8 +21,12 @@ export function CompanyList({ companies }: CompanyListProps) {
 
   useEffect(() => {
     setIsOffline(!window.navigator.onLine);
-    function handleOnline() { setIsOffline(false); }
-    function handleOffline() { setIsOffline(true); }
+    function handleOnline() {
+      setIsOffline(false);
+    }
+    function handleOffline() {
+      setIsOffline(true);
+    }
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
     return () => {
@@ -39,9 +43,7 @@ export function CompanyList({ companies }: CompanyListProps) {
     );
   }
 
-  const filtered = companies.filter((c) =>
-    c.name.toLowerCase().includes(search.toLowerCase()),
-  );
+  const filtered = companies.filter((c) => c.name.toLowerCase().includes(search.toLowerCase()));
 
   return (
     <div>
@@ -51,7 +53,7 @@ export function CompanyList({ companies }: CompanyListProps) {
           placeholder="Search companies…"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-full max-w-xs rounded border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-neutral-400"
+          className="w-full max-w-xs rounded border px-3 py-2 text-sm focus:ring-2 focus:ring-neutral-400 focus:outline-none"
           aria-label="Search companies"
         />
         <Link

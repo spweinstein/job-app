@@ -13,10 +13,7 @@ export function CompanyCard({ id, name, applicationCount, className }: CompanyCa
   return (
     <div className={cn('flex items-center justify-between rounded-lg border p-4', className)}>
       <div>
-        <Link
-          href={`/companies/${id}`}
-          className="font-medium hover:underline"
-        >
+        <Link href={`/companies/${id}`} className="font-medium hover:underline">
           {name}
         </Link>
         <p className="text-sm text-neutral-500">

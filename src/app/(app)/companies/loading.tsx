@@ -8,7 +8,10 @@ export default function CompaniesLoading() {
       </div>
       <ul className="space-y-2">
         {[0, 1, 2].map((i) => (
-          <li key={i} className="h-16 animate-pulse rounded-lg border bg-neutral-100 dark:bg-neutral-800" />
+          <li
+            key={i}
+            className="h-16 animate-pulse rounded-lg border bg-neutral-100 dark:bg-neutral-800"
+          />
         ))}
       </ul>
     </div>

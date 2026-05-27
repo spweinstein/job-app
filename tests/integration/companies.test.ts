@@ -117,10 +117,7 @@ describe('companies integration', () => {
       .select('id')
       .single();
 
-    const { error } = await clientA
-      .from('companies')
-      .delete()
-      .eq('id', inserted!.id);
+    const { error } = await clientA.from('companies').delete().eq('id', inserted!.id);
 
     expect(error).toBeNull();
 

@@ -41,8 +41,7 @@ export function CompanyForm({ mode, initialValues }: CompanyFormProps) {
         ? { name, website, notes }
         : { id: initialValues!.id, name, website, notes };
 
-    const result =
-      mode === 'create' ? await createCompany(input) : await updateCompany(input);
+    const result = mode === 'create' ? await createCompany(input) : await updateCompany(input);
 
     setIsPending(false);
 
@@ -61,7 +60,10 @@ export function CompanyForm({ mode, initialValues }: CompanyFormProps) {
   return (
     <form onSubmit={handleSubmit} className="space-y-4" noValidate>
       {globalError && (
-        <p role="alert" className="rounded border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700">
+        <p
+          role="alert"
+          className="rounded border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700"
+        >
           {globalError}
         </p>
       )}
@@ -75,7 +77,7 @@ export function CompanyForm({ mode, initialValues }: CompanyFormProps) {
           type="text"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          className="w-full rounded border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-neutral-400"
+          className="w-full rounded border px-3 py-2 text-sm focus:ring-2 focus:ring-neutral-400 focus:outline-none"
           aria-describedby={fieldErrors.name ? 'name-error' : undefined}
         />
         {fieldErrors.name && (
@@ -95,7 +97,7 @@ export function CompanyForm({ mode, initialValues }: CompanyFormProps) {
           value={website}
           onChange={(e) => setWebsite(e.target.value)}
           placeholder="https://example.com"
-          className="w-full rounded border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-neutral-400"
+          className="w-full rounded border px-3 py-2 text-sm focus:ring-2 focus:ring-neutral-400 focus:outline-none"
           aria-describedby={fieldErrors.website ? 'website-error' : undefined}
         />
         {fieldErrors.website && (
@@ -114,7 +116,7 @@ export function CompanyForm({ mode, initialValues }: CompanyFormProps) {
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           rows={4}
-          className="w-full rounded border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-neutral-400"
+          className="w-full rounded border px-3 py-2 text-sm focus:ring-2 focus:ring-neutral-400 focus:outline-none"
           aria-describedby={fieldErrors.notes ? 'notes-error' : undefined}
         />
         {fieldErrors.notes && (
