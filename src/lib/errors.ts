@@ -32,6 +32,8 @@ export function isAppError(value: unknown): value is AppError {
   );
 }
 
+export type ActionResult<T> = { data: T } | { error: AppError };
+
 export const HTTP_STATUS: Record<ErrorCode, number> = {
   UNAUTHENTICATED: 401,
   FORBIDDEN: 403,

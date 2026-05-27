@@ -1,10 +1,15 @@
 import { createServerClient } from '@supabase/ssr';
 import type { CookieOptions } from '@supabase/ssr';
+import { type SupabaseClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 
 import type { Database } from '@/types/database';
 
-export async function createClient() {
+// @supabase/ssr@0.5.x passes Schema as the third type arg to SupabaseClient, but
+// @supabase/supabase-js@2.106+ moved Schema to the fourth position. Casting to
+// SupabaseClient<Database> (single-arg form) lets TypeScript use the correct
+// defaults and properly resolve the public schema's table types.
+export async function createClient(): Promise<SupabaseClient<Database>> {
   const cookieStore = await cookies();
 
   return createServerClient<Database>(
@@ -27,5 +32,5 @@ export async function createClient() {
         },
       },
     },
-  );
+  ) as unknown as SupabaseClient<Database>;
 }
