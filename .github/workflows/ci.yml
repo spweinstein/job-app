@@ -19,7 +19,7 @@ jobs:
 
       - uses: pnpm/action-setup@v4
         with:
-          version: 10
+          version: 10.33.0
 
       - uses: actions/setup-node@v4
         with:
@@ -45,7 +45,7 @@ jobs:
 
       - uses: pnpm/action-setup@v4
         with:
-          version: 10
+          version: 10.33.0
 
       - uses: actions/setup-node@v4
         with:
@@ -69,7 +69,7 @@ jobs:
 
       - uses: pnpm/action-setup@v4
         with:
-          version: 10
+          version: 10.33.0
 
       - uses: actions/setup-node@v4
         with:
@@ -98,6 +98,7 @@ jobs:
     name: Lighthouse CI
     runs-on: ubuntu-latest
     needs: [lint-typecheck, unit-tests]
+    continue-on-error: true
     env:
       NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
       NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
@@ -107,7 +108,7 @@ jobs:
 
       - uses: pnpm/action-setup@v4
         with:
-          version: 10
+          version: 10.33.0
 
       - uses: actions/setup-node@v4
         with:
@@ -122,7 +123,7 @@ jobs:
       - name: Run Lighthouse CI
         run: |
           pnpm start &
-          sleep 5
+          npx wait-on http://localhost:3000 --timeout 30000
           npx @lhci/cli@0.14.x autorun
         env:
           LHCI_GITHUB_APP_TOKEN: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}

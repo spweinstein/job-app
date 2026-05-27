@@ -11,8 +11,8 @@ describe('makeError', () => {
   });
 
   it('includes details when provided', () => {
-    const err = makeError(ErrorCode.VALIDATION_ERROR, 'Invalid input', { field: 'email' });
-    expect(err.details).toEqual({ field: 'email' });
+    const err = makeError(ErrorCode.VALIDATION_ERROR, 'Invalid input', { field: ['email'] });
+    expect(err.details).toEqual({ field: ['email'] });
   });
 });
 
