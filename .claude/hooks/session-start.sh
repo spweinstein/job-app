@@ -12,11 +12,14 @@ cd "${CLAUDE_PROJECT_DIR}"
 # creation are available immediately, without waiting for a manual rebase.
 git fetch origin main
 
-if git merge origin/main --ff-only 2>/dev/null; then
-  echo "Synced branch with origin/main"
+if git merge --ff-only origin/main 2>/dev/null; then
+  echo "Synced with origin/main"
+elif git merge-base --is-ancestor HEAD origin/main 2>/dev/null; then
+  # Branch has no unique commits — safe to reset rather than silently stay stale.
+  git reset --hard origin/main
+  echo "Reset to origin/main (branch had no unique commits)"
 else
-  echo "Note: branch has diverged from origin/main; cannot fast-forward." \
-       "Run 'git merge origin/main' manually if you need the latest commands."
+  echo "Branch has diverged from origin/main — manual merge needed"
 fi
 
 # Install JS dependencies
