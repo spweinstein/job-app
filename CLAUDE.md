@@ -160,6 +160,12 @@ This project runs in a remote environment where the `gh` CLI is **not** availabl
 
 ---
 
+## Git Rules
+
+- **Never push directly to `main`.** All changes must go through a feature branch and PR. Create a branch, commit there, and use `/ship` to open the PR. This applies to documentation fixes, command updates, and all other changes — no exceptions.
+
+---
+
 ## Key Conventions (summary — full list in `docs/agent-guide.md`)
 
 - All mutations are **server actions** in `src/actions/`. Never put DB calls in components.
